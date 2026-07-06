@@ -1,0 +1,71 @@
+{\rtf1\ansi\deff0
+{\fonttbl{\f0 Arial;}}
+\f0\fs24\b Google Ads API Integration ? Design Documentation\b0\par
+\fs20\par
+\b Tool Name:\b0 Bellalux Marketing Analytics Platform\par
+\b Company:\b0 Bellalux (Registered in Belgium)\par
+\b Developer:\b0 Kerim ? Platform Developer\par
+\par
+\fs22\b 1. Tool Purpose\b0\fs20\par
+A multi-client marketing analytics platform that consolidates Google Ads campaign data for client accounts alongside their e-commerce sales data. The platform provides clients with a unified dashboard showing ad spend, campaign performance, and ROI metrics.\par
+\par
+The first client integration is for QuickSolutionsPro.be, a refurbished electronics retailer running Google Shopping campaigns.\par
+\par
+\fs22\b 2. How the API Will Be Used\b0\fs20\par
+\b Data Accessed (Read-Only):\b0\par
+- Campaign performance metrics (impressions, clicks, CTR, CPC, conversions)\par
+- Ad group and keyword performance data\par
+- Conversion tracking and attribution data\par
+- Account-level budget and spend summaries\par
+- Campaign-level geographic and demographic performance\par
+\par
+\b What We Will NOT Do:\b0\par
+- Create, edit, or manage campaigns via API\par
+- Modify bids, budgets, or ad content via API\par
+- Access or store any personally identifiable information from ad interactions\par
+- Share data with any third parties\par
+- Resell or redistribute Google Ads data outside the client's own dashboard\par
+\par
+\b API Call Pattern:\b0\par
+- Method: GoogleAdsService.Search (GAQL queries)\par
+- Frequency: 4-6 requests per hour per connected client account\par
+- Data is fetched server-side and displayed in a password-protected client dashboard\par
+\par
+\fs22\b 3. Data Flow Architecture\b0\fs20\par
+Google Ads API\par
+    -> OAuth2 + Developer Token authentication\par
+    -> Next.js API routes (Vercel serverless functions, EU region)\par
+    -> Encrypted environment variables store credentials\par
+    -> Password-protected client dashboard (browser)\par
+    -> Authorized client user\par
+\par
+Credentials never leave the server. No client-side API calls to Google Ads.\par
+\par
+\fs22\b 4. Security Implementation\b0\fs20\par
+- OAuth2 authentication with offline refresh tokens\par
+- All Google Ads API calls originate from Vercel serverless functions\par
+- API credentials (Client ID, Client Secret, Developer Token) stored as encrypted environment variables\par
+- Each client has their own dashboard with unique password authentication\par
+- No cross-client data access ? each client only sees their own Google Ads data\par
+- Session-based JWT authentication for dashboard access\par
+- No Google Ads data is permanently stored ? it is fetched live and displayed\par
+\par
+\fs22\b 5. Technology Stack\b0\fs20\par
+- Framework: Next.js 15 (TypeScript)\par
+- Google Ads API: v18+\par
+- Hosting: Vercel (European servers)\par
+- Charts: Recharts library\par
+- Auth: JWT session cookies\par
+\par
+\fs22\b 6. Contact Information\b0\fs20\par
+- Company: Bellalux\par
+- Developer: Kerim\par
+- Location: Belgium\par
+\par
+\fs22\b 7. Multi-Client Architecture\b0\fs20\par
+The platform uses a manager account structure to access client Google Ads data:\par
+- Each client authorizes access via OAuth2 to their own Google Ads account\par
+- The manager account is used solely for API access management\par
+- Client data is segregated and displayed only to the authorized client\par
+- No client data is shared, aggregated, or cross-referenced between accounts\par
+}

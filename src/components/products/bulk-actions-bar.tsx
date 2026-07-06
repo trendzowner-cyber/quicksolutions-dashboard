@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Wand2, X, Loader2, Check, SkipForward } from "lucide-react";
+import { Wand2, X, Loader2, Check, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { ReviewModal } from "./review-modal";
 

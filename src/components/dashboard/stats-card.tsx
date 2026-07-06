@@ -1,15 +1,12 @@
-"use client";
-
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { LucideIcon, TrendingUp, TrendingDown } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 interface StatsCardProps {
   title: string;
   value: string | number;
   icon: LucideIcon;
   description?: string;
-  trend?: "up" | "down";
   gradient?: string;
 }
 
@@ -34,7 +31,6 @@ export function StatsCard({
   value,
   icon: Icon,
   description,
-  trend,
   gradient = "blue",
 }: StatsCardProps) {
   return (
@@ -51,23 +47,7 @@ export function StatsCard({
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               {title}
             </p>
-            <div className="flex items-baseline gap-2">
-              <p className="text-2xl font-bold tracking-tight">{value}</p>
-              {trend && (
-                <span
-                  className={cn(
-                    "flex items-center text-xs font-medium",
-                    trend === "up" ? "text-emerald-400" : "text-rose-400"
-                  )}
-                >
-                  {trend === "up" ? (
-                    <TrendingUp className="h-3 w-3 mr-0.5" />
-                  ) : (
-                    <TrendingDown className="h-3 w-3 mr-0.5" />
-                  )}
-                </span>
-              )}
-            </div>
+            <p className="text-2xl font-bold tracking-tight">{value}</p>
             {description && (
               <p className="text-xs text-muted-foreground">{description}</p>
             )}

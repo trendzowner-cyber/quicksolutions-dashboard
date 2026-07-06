@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { PageAIButton } from "./page-ai-button";
+import { AIRedesignPagina } from "@/components/paginas/ai-redesign-pagina";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +84,14 @@ export default async function PageDetailPage({
       <Separator />
 
       <PageAIButton pageId={pageId} title={title} content={content} />
+
+      <div className="pt-4">
+        <AIRedesignPagina
+          pageId={pageId}
+          currentTitle={title}
+          currentContent={content}
+        />
+      </div>
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Eye, File } from "lucide-react";
+import { AICreatePagina } from "@/components/paginas/ai-create-pagina";
 
 export const dynamic = "force-dynamic";
 
@@ -29,10 +30,15 @@ export default async function PagesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Pagina&apos;s</h1>
-        <p className="text-muted-foreground">
-          Beheer je WordPress pagina&apos;s
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Pagina&apos;s</h1>
+            <p className="text-muted-foreground">
+              Beheer je WordPress pagina&apos;s
+            </p>
+          </div>
+          <AICreatePagina />
+        </div>
       </div>
 
       <p className="text-sm text-muted-foreground">{total} pagina&apos;s</p>

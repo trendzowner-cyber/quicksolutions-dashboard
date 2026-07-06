@@ -15,45 +15,17 @@ import {
   LogOut,
   Sparkles,
   ShoppingCart,
+  ListChecks,
 } from "lucide-react";
 
 const navItems = [
-  {
-    href: "/dashboard",
-    label: "Dashboard",
-    icon: LayoutDashboard,
-    color: "text-blue-400",
-  },
-  {
-    href: "/dashboard/producten",
-    label: "Producten",
-    icon: Package,
-    color: "text-violet-400",
-  },
-  {
-    href: "/dashboard/bestellingen",
-    label: "Bestellingen",
-    icon: ShoppingCart,
-    color: "text-emerald-400",
-  },
-  {
-    href: "/dashboard/blog",
-    label: "Blog",
-    icon: FileText,
-    color: "text-amber-400",
-  },
-  {
-    href: "/dashboard/paginas",
-    label: "Pagina's",
-    icon: File,
-    color: "text-rose-400",
-  },
-  {
-    href: "/dashboard/audit",
-    label: "SEO Audit",
-    icon: SearchCheck,
-    color: "text-cyan-400",
-  },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, color: "text-blue-400" },
+  { href: "/dashboard/producten", label: "Producten", icon: Package, color: "text-violet-400" },
+  { href: "/dashboard/bestellingen", label: "Bestellingen", icon: ShoppingCart, color: "text-emerald-400" },
+  { href: "/dashboard/blog", label: "Blog", icon: FileText, color: "text-amber-400" },
+  { href: "/dashboard/paginas", label: "Pagina's", icon: File, color: "text-rose-400" },
+  { href: "/dashboard/taken", label: "Taken", icon: ListChecks, color: "text-cyan-400" },
+  { href: "/dashboard/audit", label: "SEO Audit", icon: SearchCheck, color: "text-orange-400" },
 ];
 
 export function Sidebar() {

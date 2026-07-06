@@ -24,10 +24,7 @@ function NewBlogForm() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [excerpt, setExcerpt] = useState("");
-  const [seoData, setSeoData] = useState<{
-    metaDescription: string;
-    focusKeyphrase: string;
-  } | null>(null);
+  const [seoData, setSeoData] = useState<Record<string, unknown> | null>(null);
 
   async function handleGenerate() {
     if (!topic.trim()) {
@@ -59,7 +56,7 @@ function NewBlogForm() {
         faqSchema: data.faqSchema || [],
         tags: data.tags || [],
         category: data.category || "",
-      } as Record<string, unknown>);
+      });
       toast.success("Blog post gegenereerd!");
     } catch {
       toast.error("Fout bij genereren blog post");
@@ -171,14 +168,14 @@ function NewBlogForm() {
                 <p className="text-xs text-muted-foreground mb-1">
                   Meta Beschrijving
                 </p>
-                <p className="text-sm">{seoData.metaDescription}</p>
+                <p className="text-sm">{seoData.metaDescription as string}</p>
               </div>
               <div className="rounded-lg border border-border bg-card p-3">
                 <p className="text-xs text-muted-foreground mb-1">
                   Focus Keyphrase
                 </p>
                 <p className="text-sm font-medium">
-                  {seoData.focusKeyphrase}
+                  {seoData.focusKeyphrase as string}
                 </p>
               </div>
             </div>

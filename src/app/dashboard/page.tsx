@@ -1,7 +1,6 @@
 import { getStats } from "@/lib/wp-client";
 import { StatsCard } from "@/components/dashboard/stats-card";
 import { QuickActions } from "@/components/dashboard/quick-actions";
-import { AdsOverview } from "@/components/dashboard/ads-overview";
 import { Package, FileText, ShoppingCart, TrendingUp } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -55,9 +54,6 @@ export default async function DashboardHome() {
           description="Start een audit"
         />
       </div>
-
-      {/* Google Ads */}
-      <AdsOverview />
 
       {/* Quick Actions */}
       <div>

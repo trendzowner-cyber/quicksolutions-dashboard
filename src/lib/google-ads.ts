@@ -71,8 +71,10 @@ export async function queryGoogleAds(
   query: string,
   accessToken: string
 ) {
+  // Strip dashes from customer ID — API expects 4808896252 not 480-889-6252
+  const cleanId = customerId.replace(/-/g, "");
   const response = await fetch(
-    `${GOOGLE_ADS_API}/customers/${customerId}/googleAds:search`,
+    `${GOOGLE_ADS_API}/customers/${cleanId}/googleAds:search`,
     {
       method: "POST",
       headers: {

@@ -52,7 +52,14 @@ function NewBlogForm() {
       setSeoData({
         metaDescription: data.metaDescription || "",
         focusKeyphrase: data.focusKeyphrase || "",
-      });
+        seoTitle: data.seoTitle || "",
+        slug: data.slug || "",
+        imageSuggestions: data.imageSuggestions || [],
+        internalLinks: data.internalLinks || [],
+        faqSchema: data.faqSchema || [],
+        tags: data.tags || [],
+        category: data.category || "",
+      } as Record<string, unknown>);
       toast.success("Blog post gegenereerd!");
     } catch {
       toast.error("Fout bij genereren blog post");

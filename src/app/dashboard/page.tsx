@@ -53,18 +53,21 @@ export default async function DashboardHome() {
           title="Producten"
           value={stats.productCount}
           icon={Package}
-          description="WooCommerce producten"
+          gradient="blue"
+          description="WooCommerce catalogus"
         />
         <StatsCard
           title="Blog Posts"
           value={stats.postCount}
           icon={FileText}
+          gradient="violet"
           description="Gepubliceerde artikels"
         />
         <StatsCard
           title="Bestellingen"
           value={stats.orderCount}
           icon={ShoppingCart}
+          gradient="emerald"
           description="Totaal aantal orders"
         />
         <StatsCard
@@ -73,7 +76,9 @@ export default async function DashboardHome() {
             totalRevenue > 0 ? `€${totalRevenue.toFixed(0)}` : "—"
           }
           icon={TrendingUp}
-          description="Van voltooide orders"
+          gradient="amber"
+          description="Voltooide & in behandeling"
+          trend={totalRevenue > 0 ? "up" : undefined}
         />
       </div>
 

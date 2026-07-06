@@ -3,6 +3,7 @@ import type { WCOrder } from "@/types/woocommerce";
 import { StatsCard } from "@/components/dashboard/stats-card";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { DashboardCharts } from "./dashboard-charts";
+import { AdsOverview } from "@/components/dashboard/ads-overview";
 import { Package, FileText, ShoppingCart, TrendingUp } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -78,6 +79,9 @@ export default async function DashboardHome() {
 
       {/* Charts */}
       <DashboardCharts orders={orders} />
+
+      {/* Google Ads */}
+      <AdsOverview />
 
       {/* Quick Actions */}
       <div>

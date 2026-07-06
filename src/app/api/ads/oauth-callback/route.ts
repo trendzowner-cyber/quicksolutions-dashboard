@@ -1,20 +1,26 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { exchangeCode } from "@/lib/google-ads";
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const code = searchParams.get("code");
-  const error = searchParams.get("error");
+export async function GET(request: NextRequest) {
+  const code = request.nextUrl.searchParams.get("code");
+  const error = request.nextUrl.searchParams.get("error");
+
+  // Return full URL for debugging
+  const fullUrl = request.nextUrl.toString();
 
   if (error) {
     return NextResponse.json(
-      { error: `OAuth error: ${error}` },
+      { error: `OAuth error: ${error}`, url: fullUrl },
       { status: 400 }
     );
   }
 
   if (!code) {
-    return NextResponse.json({ error: "No code provided" }, { status: 400 });
+    return NextResponse.json({
+      error: "No code provided",
+      url: fullUrl,
+      allParams: Object.fromEntries(request.nextUrl.searchParams.entries()),
+    });
   }
 
   try {
@@ -23,9 +29,6 @@ export async function GET(request: Request) {
       success: true,
       refresh_token: tokens.refresh_token,
       access_token: tokens.access_token,
-      expires_in: tokens.expires_in,
-      message:
-        "Copy the refresh_token value and add it to GOOGLE_ADS_REFRESH_TOKEN env var",
     });
   } catch (err) {
     return NextResponse.json(

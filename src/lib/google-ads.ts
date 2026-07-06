@@ -2,7 +2,7 @@
 // Developer Token: ***REMOVED***
 // Customer IDs: 480-889-6252 (Google Shopping), 668-709-2345 (Repair)
 
-const GOOGLE_ADS_API = "https://googleads.googleapis.com/v18";
+const GOOGLE_ADS_API = "https://googleads.googleapis.com/v20";
 const CLIENT_ID =
   "***REMOVED***";
 const CLIENT_SECRET = "***REMOVED***";

@@ -19,7 +19,7 @@ interface ProductClientWrapperProps {
 }
 
 export function ProductClientWrapper({ products }: ProductClientWrapperProps) {
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const router = useRouter();
 
   const productNames = new Map(products.map((p) => [p.id, p.name]));
@@ -35,9 +35,9 @@ export function ProductClientWrapper({ products }: ProductClientWrapperProps) {
       <BulkActionsBar
         selectedIds={selectedIds}
         productNames={productNames}
-        onClear={() => setSelectedIds(new Set())}
+        onClear={() => setSelectedIds([])}
         onComplete={() => {
-          setSelectedIds(new Set());
+          setSelectedIds([]);
           router.refresh();
         }}
       />

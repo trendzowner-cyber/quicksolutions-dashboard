@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { ReviewModal } from "./review-modal";
 
 interface BulkActionsBarProps {
-  selectedIds: Set<number>;
+  selectedIds: number[];
   productNames: Map<number, string>;
   onClear: () => void;
   onComplete: () => void;
@@ -32,7 +32,7 @@ export function BulkActionsBar({
     suggestion: string;
   } | null>(null);
 
-  const ids = Array.from(selectedIds);
+  const ids = selectedIds;
   const total = ids.length;
 
   async function handleBulkTitles() {
@@ -128,14 +128,14 @@ export function BulkActionsBar({
     }
   }
 
-  if (selectedIds.size === 0) return null;
+  if (selectedIds.length === 0) return null;
 
   return (
     <>
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
         <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-5 py-3 shadow-xl">
           <span className="text-sm font-medium">
-            {selectedIds.size} geselecteerd
+            {selectedIds.length} geselecteerd
           </span>
 
           <Button

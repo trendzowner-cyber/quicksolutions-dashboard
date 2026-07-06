@@ -53,7 +53,7 @@ export default function ProductenPage(props: ProductenPageProps) {
         <p className="text-muted-foreground">Beheer je WooCommerce producten met AI-assistentie</p>
       </div>
       <Suspense
-        fallback={<ProductTable products={[]} loading selectedIds={new Set()} onSelectionChange={() => {}} />}
+        fallback={<ProductTable products={[]} loading selectedIds={[]} onSelectionChange={() => {}} />}
       >
         <ProductList searchParams={props.searchParams} />
       </Suspense>

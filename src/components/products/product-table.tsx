@@ -30,8 +30,8 @@ interface Product {
 interface ProductTableProps {
   products: Product[];
   loading?: boolean;
-  selectedIds: Set<number>;
-  onSelectionChange: (ids: Set<number>) => void;
+  selectedIds: number[];
+  onSelectionChange: (ids: number[]) => void;
   onProductUpdate?: () => void;
 }
 
@@ -184,17 +184,18 @@ export function ProductTable({
   }
 
   function toggleSelect(id: number) {
-    const next = new Set(selectedIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    onSelectionChange(next);
+    if (selectedIds.includes(id)) {
+      onSelectionChange(selectedIds.filter((i) => i !== id));
+    } else {
+      onSelectionChange([...selectedIds, id]);
+    }
   }
 
   function toggleAll() {
-    if (selectedIds.size === products.length) {
-      onSelectionChange(new Set());
+    if (selectedIds.length === products.length) {
+      onSelectionChange([]);
     } else {
-      onSelectionChange(new Set(products.map((p) => p.id)));
+      onSelectionChange(products.map((p) => p.id));
     }
   }
 
@@ -226,7 +227,7 @@ export function ProductTable({
               <Checkbox
                 checked={
                   products.length > 0 &&
-                  selectedIds.size === products.length
+                  selectedIds.length === products.length
                 }
                 onCheckedChange={toggleAll}
               />
@@ -244,12 +245,12 @@ export function ProductTable({
             <TableRow
               key={product.id}
               className={
-                selectedIds.has(product.id) ? "bg-primary/5" : ""
+                selectedIds.includes(product.id) ? "bg-primary/5" : ""
               }
             >
               <TableCell>
                 <Checkbox
-                  checked={selectedIds.has(product.id)}
+                  checked={selectedIds.includes(product.id)}
                   onCheckedChange={() => toggleSelect(product.id)}
                 />
               </TableCell>

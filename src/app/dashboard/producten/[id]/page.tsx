@@ -224,6 +224,9 @@ export default async function ProductDetailPage({
               title={name}
               description={description}
               shortDescription={shortDescription}
+              permalink={permalink}
+              price={price || (regularPrice as string) || ""}
+              images={images}
             />
           </div>
         </div>

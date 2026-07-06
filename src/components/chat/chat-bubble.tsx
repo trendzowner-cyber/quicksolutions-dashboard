@@ -125,6 +125,32 @@ export function ChatBubble() {
       case "TOON_ANALYTICS":
         window.location.href = "/dashboard";
         break;
+      case "BOUW_PLUGIN":
+        handleBuildPlugin(cmd.message || cmd.args?.description || "");
+        break;
+      case "EXPORT_ORDERS":
+        window.open("/api/wp/export-orders", "_blank");
+        break;
+    }
+  }
+
+  async function handleBuildPlugin(description: string) {
+    setMessages((prev) => [...prev, { role: "system", content: "🔧 Plugin code genereren..." }]);
+    try {
+      const res = await fetch("/api/ai/build-plugin", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: description }),
+      });
+      if (!res.ok) throw new Error("API error");
+      const data = await res.json();
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "✅ Plugin gegenereerd!\n\n```php\n" + data.code.slice(0, 1500) + (data.code.length > 1500 ? "\n\n... (code ingekort, volledige code in console)" : "") + "\n```\n\nKopieer deze code en voeg toe via WP Admin → Plugins → Nieuwe plugin, of via de Code Snippets plugin." },
+      ]);
+      console.log("=== GEGENEREERDE PLUGIN CODE ===");
+      console.log(data.code);
+    } catch {
+      setMessages((prev) => [...prev, { role: "assistant", content: "❌ Fout bij genereren plugin. Probeer opnieuw." }]);
     }
   }
 

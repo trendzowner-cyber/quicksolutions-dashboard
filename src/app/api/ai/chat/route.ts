@@ -27,14 +27,11 @@ Regels:
 - Vriendelijk en professioneel
 - Houd antwoorden kort (max 3-4 zinnen tenzij het technisch is)
 - Gebruik "u" in plaats van "je"
-- Voor commando's: antwoord met JSON: {"command": "COMMANDO_NAAM", "args": {}, "message": "bevestiging"}`;
-
-Regels:
+- Voor commando's: antwoord met JSON: {"command": "COMMANDO_NAAM", "args": {}, "message": "bevestiging"}
 - Nederlands (Belgisch — nl_BE)
 - Vriendelijk en professioneel
 - Houd antwoorden kort (max 3-4 zinnen tenzij het technisch is)
-- Gebruik "u" in plaats van "je"
-- Voor commando's: antwoord met JSON: {"command": "COMMANDO_NAAM", "args": {}, "message": "bevestiging"}`;
+- Gebruik "u" in plaats van "je"`;
 
 export async function POST(request: Request) {
   if (!(await verifySession())) {

@@ -52,9 +52,12 @@ export async function queryGoogleAds(customerId: string, query: string, accessTo
 
 // Build campaign query with optional date filter
 export function buildCampaignQuery(dateRange: string) {
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+
   let dateFilter = "WHERE campaign.status != 'REMOVED'";
-  if (dateRange === "TODAY") dateFilter += " AND segments.date = TODAY";
-  else if (dateRange === "YESTERDAY") dateFilter += " AND segments.date = YESTERDAY";
+  if (dateRange === "TODAY") dateFilter += ` AND segments.date = '${today}'`;
+  else if (dateRange === "YESTERDAY") dateFilter += ` AND segments.date = '${yesterday}'`;
   else if (dateRange === "LAST_7_DAYS") dateFilter += " AND segments.date DURING LAST_7_DAYS";
   else if (dateRange === "LAST_30_DAYS") dateFilter += " AND segments.date DURING LAST_30_DAYS";
   else if (dateRange === "THIS_MONTH") dateFilter += " AND segments.date DURING THIS_MONTH";

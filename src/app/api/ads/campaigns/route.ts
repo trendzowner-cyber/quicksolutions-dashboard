@@ -35,9 +35,9 @@ export async function GET(request: NextRequest) {
       const entry = campaignMap.get(id)!;
       entry.impressions += Number(m.impressions) || 0;
       entry.clicks += Number(m.clicks) || 0;
-      entry.costMicros += Number(m.cost_micros) || 0;
+      entry.costMicros += Number(m.costMicros || m.cost_micros) || 0;
       entry.conversions += Number(m.conversions) || 0;
-      entry.conversionsValue += Number(m.conversions_value) || 0;
+      entry.conversionsValue += Number(m.conversionsValue || m.conversions_value) || 0;
       entry.dayCount += 1;
       entry.ctr += Number(m.ctr) || 0;
       entry.averageCpc += Number(m.average_cpc) || 0;
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       id,
       name: (campaignRes.results || []).find((r: Record<string, unknown>) => (r.campaign as Record<string, unknown>).id === id)?.campaign?.name || id,
       status: (campaignRes.results || []).find((r: Record<string, unknown>) => (r.campaign as Record<string, unknown>).id === id)?.campaign?.status || "UNKNOWN",
-      channel: (campaignRes.results || []).find((r: Record<string, unknown>) => (r.campaign as Record<string, unknown>).id === id)?.campaign?.advertising_channel_type || "UNKNOWN",
+      channel: (() => { const c = (campaignRes.results || []).find((r: Record<string, unknown>) => (r.campaign as Record<string, unknown>).id === id)?.campaign as Record<string, unknown>; return (c?.advertisingChannelType || c?.advertising_channel_type || "UNKNOWN") as string; })(),
       impressions: metrics.impressions,
       clicks: metrics.clicks,
       costMicros: metrics.costMicros,
@@ -60,23 +60,25 @@ export async function GET(request: NextRequest) {
     // Sort by impressions desc
     campaigns.sort((a, b) => b.impressions - a.impressions);
 
-    // Account-level totals
-    const accountMetrics = accountRes.results?.[0]?.metrics || {};
+    // Compute totals from campaigns (more reliable than account-level query with date segments)
+    const totals = {
+      impressions: campaigns.reduce((s, c) => s + c.impressions, 0),
+      clicks: campaigns.reduce((s, c) => s + c.clicks, 0),
+      costMicros: campaigns.reduce((s, c) => s + c.costMicros, 0),
+      conversions: campaigns.reduce((s, c) => s + c.conversions, 0),
+      ctr: 0,
+      averageCpc: 0,
+      conversionsValue: campaigns.reduce((s, c) => s + c.conversionsValue, 0),
+    };
+    totals.ctr = totals.impressions > 0 ? totals.clicks / totals.impressions : 0;
+    totals.averageCpc = totals.clicks > 0 ? totals.costMicros / totals.clicks : 0;
     const accountName = accountRes.results?.[0]?.customer?.descriptive_name || "";
 
     return NextResponse.json({
       accountId, dateRange,
       accounts: ACCOUNT_IDS.map((id) => ({ id, label: ACCOUNT_LABELS[id] || id })),
       accountName,
-      totals: {
-        impressions: Number(accountMetrics.impressions) || 0,
-        clicks: Number(accountMetrics.clicks) || 0,
-        costMicros: Number(accountMetrics.cost_micros) || 0,
-        conversions: Number(accountMetrics.conversions) || 0,
-        ctr: Number(accountMetrics.ctr) || 0,
-        averageCpc: Number(accountMetrics.average_cpc) || 0,
-        conversionsValue: Number(accountMetrics.conversions_value) || 0,
-      },
+      totals,
       campaigns,
     });
   } catch (error) {

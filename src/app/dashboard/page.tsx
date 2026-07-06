@@ -1,6 +1,7 @@
 import { getStats } from "@/lib/wp-client";
 import { StatsCard } from "@/components/dashboard/stats-card";
 import { QuickActions } from "@/components/dashboard/quick-actions";
+import { AdsOverview } from "@/components/dashboard/ads-overview";
 import { Package, FileText, ShoppingCart, TrendingUp } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -10,9 +11,7 @@ export default async function DashboardHome() {
 
   try {
     stats = await getStats();
-  } catch {
-    // empty
-  }
+  } catch {}
 
   return (
     <div className="space-y-6">
@@ -27,6 +26,8 @@ export default async function DashboardHome() {
         <StatsCard title="Bestellingen" value={stats.orderCount} icon={ShoppingCart} gradient="emerald" description="Totaal aantal orders" />
         <StatsCard title="Totale Omzet" value="—" icon={TrendingUp} gradient="amber" description="Start een audit" />
       </div>
+
+      <AdsOverview />
 
       <div>
         <h2 className="text-lg font-semibold mb-3">Snelle Acties</h2>

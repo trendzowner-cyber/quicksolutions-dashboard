@@ -1,5 +1,10 @@
-const WP_API_URL = process.env.WP_API_URL!;
-const WC_API_URL = process.env.WC_API_URL!;
+function getWPUrl(): string {
+  return process.env.WP_API_URL || "";
+}
+
+function getWCUrl(): string {
+  return process.env.WC_API_URL || "";
+}
 
 function wpAuth(): string {
   return Buffer.from(
@@ -19,7 +24,7 @@ export async function wpFetch<T>(
   endpoint: string,
   options?: RequestInit
 ): Promise<{ data: T; headers: Headers }> {
-  const url = `${WP_API_URL}${endpoint}`;
+  const url = `${getWPUrl()}${endpoint}`;
   const res = await fetch(url, {
     ...options,
     headers: {
@@ -78,11 +83,13 @@ export async function updatePage(id: number, data: Record<string, unknown>) {
 }
 
 // ─── Yoast SEO ───
-const YOAST_URL = process.env.WP_API_URL!.replace("/wp/v2", "");
+function getYoastUrl(): string {
+  return (process.env.WP_API_URL || "").replace("/wp/v2", "");
+}
 
 export async function getSEOMeta(postId: number, postType = "post") {
   const res = await fetch(
-    `${YOAST_URL}/yoast/v1/get_meta?post_id=${postId}&post_type=${postType}`,
+    `${getYoastUrl()}/yoast/v1/get_meta?post_id=${postId}&post_type=${postType}`,
     {
       headers: {
         Authorization: `Basic ${wpAuth()}`,
@@ -99,7 +106,7 @@ export async function updateSEOMeta(
   postType = "post"
 ) {
   const res = await fetch(
-    `${YOAST_URL}/yoast/v1/update_meta?post_id=${postId}&post_type=${postType}`,
+    `${getYoastUrl()}/yoast/v1/update_meta?post_id=${postId}&post_type=${postType}`,
     {
       method: "POST",
       headers: {
@@ -119,7 +126,7 @@ export async function wcFetch<T>(
   endpoint: string,
   options?: RequestInit
 ): Promise<{ data: T; headers: Headers }> {
-  const url = `${WC_API_URL}${endpoint}`;
+  const url = `${getWCUrl()}${endpoint}`;
   const res = await fetch(url, {
     ...options,
     headers: {

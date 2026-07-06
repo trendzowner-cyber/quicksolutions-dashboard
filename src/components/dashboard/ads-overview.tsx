@@ -38,32 +38,49 @@ interface AccountData {
   };
 }
 
+interface AdAccount {
+  id: string;
+  label: string;
+}
+
 export function AdsOverview() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [campaigns, setCampaigns] = useState<CampaignData[]>([]);
   const [account, setAccount] = useState<AccountData | null>(null);
+  const [accounts, setAccounts] = useState<AdAccount[]>([]);
+  const [selectedAccount, setSelectedAccount] = useState("");
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        const res = await fetch("/api/ads/campaigns");
-        if (!res.ok) {
-          const data = await res.json();
-          setError(data.details || data.error || "Failed to fetch");
-          return;
-        }
+    fetchData(selectedAccount);
+  }, [selectedAccount]);
+
+  async function fetchData(accountId: string) {
+    setLoading(true);
+    setError("");
+    try {
+      const url = accountId
+        ? `/api/ads/campaigns?accountId=${accountId}`
+        : "/api/ads/campaigns";
+      const res = await fetch(url);
+      if (!res.ok) {
         const data = await res.json();
-        setCampaigns(data.campaigns || []);
-        setAccount(data.account);
-      } catch {
-        setError("Failed to connect to Google Ads");
-      } finally {
-        setLoading(false);
+        setError(data.details || data.error || "Failed to fetch");
+        return;
       }
+      const data = await res.json();
+      setCampaigns(data.campaigns || []);
+      setAccount(data.account);
+      setAccounts(data.accounts || []);
+      if (!selectedAccount && data.accountId) {
+        setSelectedAccount(data.accountId);
+      }
+    } catch {
+      setError("Failed to connect to Google Ads");
+    } finally {
+      setLoading(false);
     }
-    fetchData();
-  }, []);
+  }
 
   if (loading) {
     return (
@@ -134,6 +151,24 @@ export function AdsOverview() {
 
   return (
     <div className="space-y-4">
+      {/* Account switcher */}
+      {accounts.length > 1 && (
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium">Ad Account:</span>
+          <select
+            value={selectedAccount}
+            onChange={(e) => setSelectedAccount(e.target.value)}
+            className="text-sm bg-muted border border-border rounded-lg px-3 py-1.5"
+          >
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.label} ({a.id})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Account name */}
       {account && (
         <p className="text-sm text-muted-foreground">

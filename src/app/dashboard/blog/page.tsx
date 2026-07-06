@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PostsTable } from "@/components/blog/posts-table";
 import { BlogIdeasPanel } from "@/components/blog/blog-ideas-panel";
+import { Pagination } from "@/components/shared/pagination";
 import { getPosts } from "@/lib/wp-client";
 import { Suspense } from "react";
 import { Plus } from "lucide-react";

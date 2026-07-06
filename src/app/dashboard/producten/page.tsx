@@ -1,6 +1,7 @@
 import { getProducts } from "@/lib/wp-client";
 import { ProductTable } from "@/components/products/product-table";
 import { ProductFilters } from "@/components/products/product-filters";
+import { Pagination } from "@/components/shared/pagination";
 import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +52,11 @@ async function ProductList({ searchParams }: ProductenPageProps) {
             images: p.images as Array<{ src: string; alt: string }>,
           }))
         }
+      />
+      <Pagination
+        total={total}
+        page={parseInt(params.page || "1")}
+        perPage={20}
       />
     </div>
   );

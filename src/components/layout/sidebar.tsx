@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   LayoutDashboard,
   Package,
@@ -13,11 +14,13 @@ import {
   SearchCheck,
   LogOut,
   Sparkles,
+  ShoppingCart,
 } from "lucide-react";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/producten", label: "Producten", icon: Package },
+  { href: "/dashboard/bestellingen", label: "Bestellingen", icon: ShoppingCart },
   { href: "/dashboard/blog", label: "Blog", icon: FileText },
   { href: "/dashboard/paginas", label: "Pagina's", icon: File },
   { href: "/dashboard/audit", label: "SEO Audit", icon: SearchCheck },
@@ -72,8 +75,12 @@ export function Sidebar() {
 
       <Separator />
 
-      {/* Logout */}
-      <div className="p-3">
+      {/* Theme + Logout */}
+      <div className="p-3 space-y-1">
+        <div className="flex items-center justify-between px-1">
+          <span className="text-xs text-muted-foreground">Thema</span>
+          <ThemeToggle />
+        </div>
         <Button
           variant="ghost"
           size="sm"

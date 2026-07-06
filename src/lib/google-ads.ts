@@ -1,12 +1,14 @@
 // Google Ads API client
 // Developer Token: ***REMOVED***
+// Manager ID: 307-370-2998
 // Customer IDs: 480-889-6252 (Google Shopping), 668-709-2345 (Repair)
 
-const GOOGLE_ADS_API = "https://googleads.googleapis.com/v20";
+const GOOGLE_ADS_API = "https://googleads.googleapis.com/v23";
 const CLIENT_ID =
   "***REMOVED***";
 const CLIENT_SECRET = "***REMOVED***";
 const DEVELOPER_TOKEN = "***REMOVED***";
+const MANAGER_ID = "307-370-2998";
 
 // Generate OAuth2 authorization URL
 export function getAuthUrl(customerId: string) {
@@ -81,10 +83,10 @@ export async function queryGoogleAds(
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
         "developer-token": DEVELOPER_TOKEN,
+        "login-customer-id": MANAGER_ID.replace(/-/g, ""),
       },
       body: JSON.stringify({
         query,
-        pageSize: 100,
       }),
     }
   );

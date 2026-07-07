@@ -237,7 +237,13 @@ export default function TakenPage() {
       {/* ═══ BOARD VIEW ═══ */}
       {viewMode === "board" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-          {grouped.map(({ key, label, icon: Icon, color, bg, ring, tasks }) => {
+          {grouped.map((cat) => {
+            const { key, label, tasks } = cat;
+            const c = cat as unknown as { icon?: typeof Sparkles; color?: string; bg?: string; ring?: string };
+            const Icon = c.icon || Sparkles;
+            const color = c.color || "text-gray-400";
+            const bg = c.bg || "bg-gray-500/10";
+            const ring = c.ring || "ring-gray-500/20";
             const catTimeMs = tasks.reduce((s, t) => s + t.timeLogs.reduce((ss, l) => ss + (l.duration || 0), 0), 0);
             return (
               <Card key={key} className="border-border overflow-hidden hover:shadow-md transition-shadow">
@@ -317,11 +323,12 @@ export default function TakenPage() {
               if (logs.length === 0) return <p className="text-sm text-muted-foreground text-center py-8">Nog geen activiteit</p>;
               return logs.map(task => {
                 const tMs = task.timeLogs.reduce((s, l) => s + (l.duration || 0), 0);
-                const cat = allCats.find(c => c.key === task.category);
+                const cat = allCats.find(c => c.key === task.category) as unknown as { label?: string; bg?: string; color?: string; icon?: typeof Sparkles } | undefined;
+                const CatIcon = cat?.icon || Sparkles;
                 return (
                   <div key={task.id} className="flex items-center justify-between border-b border-border/30 pb-2 text-sm">
                     <div className="flex items-center gap-2">
-                      {cat && <div className={cn("flex h-5 w-5 items-center justify-center rounded", cat.bg)}><cat.icon className={cn("h-3 w-3", cat.color)}/></div>}
+                      {cat && <div className={cn("flex h-5 w-5 items-center justify-center rounded", cat.bg || "bg-gray-500/10")}><CatIcon className={cn("h-3 w-3", cat.color || "text-gray-400")}/></div>}
                       <div>
                         <p className="font-medium text-xs">{task.title}</p>
                         <p className="text-[10px] text-muted-foreground">{cat?.label} — {fmtDate(task.createdAt)}</p>

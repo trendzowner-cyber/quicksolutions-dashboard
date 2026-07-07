@@ -220,6 +220,7 @@ export function ProductTable({
 
   return (
     <>
+      <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
       <Table>
         <TableHeader>
           <TableRow>
@@ -319,6 +320,7 @@ export function ProductTable({
           ))}
         </TableBody>
       </Table>
+      </div>
     </>
   );
 }

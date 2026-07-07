@@ -199,7 +199,7 @@ export function ChatBubble() {
 
       {/* Chat panel */}
       {open && (
-        <Card className="fixed bottom-5 right-5 z-50 w-[380px] max-w-[calc(100vw-2rem)] h-[550px] max-h-[calc(100vh-2rem)] flex flex-col shadow-2xl border-primary/20 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
+        <Card className="fixed inset-0 z-50 sm:inset-auto sm:bottom-5 sm:right-5 sm:w-[380px] sm:max-w-[calc(100vw-2rem)] h-full sm:h-[550px] sm:max-h-[calc(100vh-2rem)] flex flex-col shadow-2xl border-primary/20 bg-card/95 backdrop-blur rounded-none sm:rounded-xl">
           {/* Header */}
           <CardHeader className="px-4 py-3 border-b border-border flex-shrink-0">
             <div className="flex items-center justify-between">

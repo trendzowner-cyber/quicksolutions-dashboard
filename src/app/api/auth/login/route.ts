@@ -27,7 +27,7 @@ export async function POST(request: Request) {
       maxAge: 60 * 60 * 24 * 7,
     });
 
-    return response.json();
+    return response;
   } catch {
     return NextResponse.json({ error: "Interne serverfout" }, { status: 500 });
   }

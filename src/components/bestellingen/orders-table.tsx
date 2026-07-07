@@ -64,6 +64,7 @@ export function OrdersTable({ orders, loading }: OrdersTableProps) {
   }
 
   return (
+    <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
     <Table>
       <TableHeader>
         <TableRow>
@@ -115,5 +116,6 @@ export function OrdersTable({ orders, loading }: OrdersTableProps) {
         })}
       </TableBody>
     </Table>
+    </div>
   );
 }

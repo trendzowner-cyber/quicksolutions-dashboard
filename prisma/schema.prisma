@@ -1,0 +1,487 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Users & Auth ───
+
+model User {
+  id             String             @id @default(uuid())
+  name           String
+  username       String             @unique
+  email          String             @unique
+  passwordHash   String
+  role           String             @default("viewer") // owner, admin, marketer, content_manager, sales, analyst, viewer
+  status         String             @default("active") // active, disabled
+  avatarUrl      String?
+  lastLoginAt    DateTime?
+  // Presence for the Workers view: bumped by a heartbeat every ~60 s while a
+  // user has a dashboard tab open. "online" = seen in the last 3 minutes.
+  lastSeenAt     DateTime?
+  // Opt-in switch for the Workers section (client/CEO tracking view). Kept as a
+  // flag instead of a role so Azedine stays a "viewer" everywhere else.
+  canViewWorkers Boolean            @default(false)
+  createdAt      DateTime           @default(now())
+  createdBy      String?
+  updatedAt      DateTime           @updatedAt
+  auditLogs      AuditLog[]
+  assignedTasks  Task[]             @relation("TaskAssignee")
+  createdTasks   Task[]             @relation("TaskCreator")
+  comments       TaskComment[]
+  sessions       Session[]
+  // Review groups (Team A / Team B) — normal users belong to one group and
+  // get reviews assigned from the active group's pool each week.
+  groupId        String?
+  group          ReviewGroup?       @relation("UserGroup", fields: [groupId], references: [id], onDelete: SetNull)
+  leadOf         ReviewGroup[]      @relation("GroupLead")
+  assignments    ReviewAssignment[] @relation("UserAssignments")
+  pushSubscriptions PushSubscription[]
+
+  @@index([email])
+  @@index([role])
+  @@index([status])
+}
+
+// ─── Audit Log ───
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  actorId   String?
+  actor     User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action    String // login_success, login_failed, logout, user_created, user_disabled, role_changed, settings_modified, blog_published, task_deleted, etc.
+  entity    String? // user, task, blog, settings, etc.
+  entityId  String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ─── Tasks & Time Tracking ───
+
+model Task {
+  id                String        @id @default(cuid())
+  title             String
+  description       String?
+  category          String
+  status            String        @default("todo") // backlog, todo, in_progress, waiting, done, cancelled
+  priority          String        @default("normal") // low, normal, high, urgent
+  assigneeId        String?
+  assignee          User?         @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  creatorId         String?
+  creator           User?         @relation("TaskCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+  dueDate           String?
+  tags              String[]
+  date              String
+  // Manual position inside its status column. Named sortOrder rather than
+  // "order" so raw SQL never has to quote a reserved word.
+  sortOrder         Int           @default(0)
+  createdAt         DateTime      @default(now())
+  completedAt       DateTime?
+  updatedAt         DateTime      @updatedAt
+  timeLogs          TimeLog[]
+  subtasks          SubTask[]
+  comments          TaskComment[]
+  relatedEntityType String? // order, customer, product, blog, campaign, insight
+  relatedEntityId   String?
+  // Set when this row was materialized by the recurring-task sweep. Plain
+  // string, no relation — the sweep writes these directly and a dangling id
+  // must never block deleting the recurring task.
+  recurringTaskId   String?
+
+  @@index([date])
+  @@index([status])
+  @@index([category])
+  @@index([assigneeId])
+  @@index([status, sortOrder])
+  @@index([recurringTaskId])
+}
+
+model SubTask {
+  id         String   @id @default(cuid())
+  taskId     String
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  title      String
+  completed  Boolean  @default(false)
+  order      Int      @default(0)
+  assigneeId String?
+  createdAt  DateTime @default(now())
+
+  @@index([taskId])
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  text      String
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+}
+
+model TimeLog {
+  id       String    @id @default(cuid())
+  taskId   String
+  task     Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  start    DateTime
+  end      DateTime?
+  duration Int? // milliseconds
+
+  @@index([taskId])
+}
+
+// ─── Sessions ───
+
+model Session {
+  id        String    @id @default(cuid())
+  userId    String?
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  start     DateTime
+  end       DateTime?
+  createdAt DateTime  @default(now())
+}
+
+// ─── Blog Ideas ───
+
+model BlogIdea {
+  id             String   @id @default(cuid())
+  title          String
+  description    String
+  targetKeywords String[]
+  // Enriched SEO plan for the idea: slug, search intent, content type,
+  // internal-link targets, FAQ questions. Nullable — ideas saved before
+  // this column existed simply have none.
+  meta           Json?
+  createdAt      DateTime @default(now())
+}
+
+// ─── SEO Audit Results ───
+
+model AuditIssue {
+  id          String @id @default(cuid())
+  itemId      Int
+  itemType    String
+  itemTitle   String
+  severity    String
+  category    String
+  description String
+  suggestion  String
+
+  @@index([severity])
+  @@index([itemType])
+}
+
+model AuditScan {
+  id           String   @id @default(cuid())
+  scannedAt    DateTime @default(now())
+  productCount Int      @default(0)
+  postCount    Int      @default(0)
+  pageCount    Int      @default(0)
+  totalIssues  Int      @default(0)
+  highCount    Int      @default(0)
+  mediumCount  Int      @default(0)
+  lowCount     Int      @default(0)
+}
+
+// ─── Google Reviews (Business Profile) ───
+
+model GoogleToken {
+  id           String   @id @default(cuid())
+  scope        String   @unique // "business.manage"
+  accessToken  String
+  refreshToken String?
+  expiresAt    DateTime
+  updatedAt    DateTime @updatedAt
+}
+
+model GoogleReview {
+  id              String             @id @default(cuid())
+  googleReviewId  String             @unique
+  locationName    String? // accounts/{a}/locations/{l}
+  reviewerName    String
+  starRating      Int // 1-5
+  comment         String?
+  reviewUrl       String?
+  createTime      DateTime?
+  updateTime      DateTime?
+  firstSeenAt     DateTime           @default(now())
+  lastSeenAt      DateTime           @default(now())
+  status          String             @default("active") // active, removed
+  removedAt       DateTime?
+  reported        Boolean            @default(false)
+  reportedAt      DateTime?
+  reportedBy      String?
+  reportOutcome   String? // pending, removed, still_up, rejected
+  reportCount     Int                @default(0) // how many times (re-)reported
+  followUpAt      DateTime? // when the team should re-check the reported review
+  // Removal pipeline (the paid removal service) — null = not in the flow.
+  removalStage    String? // ready, sent, removed, came_back
+  sentToRemoverAt DateTime?
+  removalDueAt    DateTime?
+  removalPrice    Float?
+  paidAt          DateTime?
+  cameBackCount   Int                @default(0) // times it reappeared after removal
+  notes           String?
+  replyText       String?
+  repliedAt       DateTime?
+  replyPending    Boolean            @default(false) // reply saved locally, not yet live on Google (quota)
+  reportReason    String? // why the team reported it (nep review, concurrent, ...)
+  reportCaseId    String? // Google support case number for the dispute
+  escalatedAt     DateTime? // escalated to Google support
+  editedAt        DateTime? // attacker edited the review → Google re-dates it to top
+  editCount       Int                @default(0)
+  aiFakeScore     Int? // 0-100, higher = more likely fake
+  aiFlags         Json? // [{flag, reason}]
+  aiScoredAt      DateTime?
+  actions         ReviewAction[]
+  assignments     ReviewAssignment[]
+
+  @@index([starRating])
+  @@index([status])
+  @@index([reported])
+  @@index([reportOutcome])
+  @@index([createTime])
+}
+
+// One entry per management action on a review — full history, who did what when.
+model ReviewAction {
+  id        String       @id @default(cuid())
+  reviewId  String
+  review    GoogleReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  action    String // reported, unreported, outcome_set, followup_done, note_added, reply_posted, reply_deleted, created, removed
+  detail    String?
+  actorId   String? // dashboard user id (x-user-id) or "sync" / "cron" / "ai"
+  createdAt DateTime     @default(now())
+
+  @@index([reviewId])
+  @@index([createdAt])
+}
+
+// The client's Google place — real rating/count from Places API (New),
+// used as display fallback while Business Profile API approval is pending.
+model GooglePlace {
+  id          String   @id @default(cuid())
+  placeId     String   @unique
+  displayName String?
+  rating      Float?
+  reviewCount Int?
+  mapsUri     String?
+  updatedAt   DateTime @updatedAt
+}
+
+// Single-row state for the Outscraper fallback sync (id "main"):
+// throttle timestamp + last-known place info.
+model OutscraperSync {
+  id          String   @id @default("main")
+  placeId     String?
+  placeName   String?
+  rating      Float?
+  reviewCount Int?
+  updatedAt   DateTime @updatedAt
+}
+
+model ReviewSyncLog {
+  id           String    @id @default(cuid())
+  startedAt    DateTime  @default(now())
+  finishedAt   DateTime?
+  status       String    @default("running") // running, success, error
+  newCount     Int       @default(0)
+  removedCount Int       @default(0)
+  error        String?
+}
+
+// ─── Review Groups & Weekly Assignment ───
+// Two groups take turns handling reviews (weekly rotation). Reviews needing
+// action are distributed evenly among the ACTIVE group's members each week;
+// members only ever see their own pile ("Mijn Taken").
+
+model ReviewGroup {
+  id          String             @id @default(cuid())
+  name        String             @unique
+  sortOrder   Int                @default(0)
+  leadUserId  String?
+  lead        User?              @relation("GroupLead", fields: [leadUserId], references: [id], onDelete: SetNull)
+  // The group with the most recent activeFrom is the active one; the
+  // assignment helper auto-rotates once activeFrom is > 7 days old.
+  activeFrom  DateTime?
+  createdAt   DateTime           @default(now())
+  members     User[]             @relation("UserGroup")
+  assignments ReviewAssignment[]
+
+  @@index([sortOrder])
+}
+
+// One row per review per week: which member of the active group handles it.
+// A review re-enters the pool next week if it still needs action.
+model ReviewAssignment {
+  id          String       @id @default(cuid())
+  reviewId    String
+  review      GoogleReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  userId      String?
+  user        User?        @relation("UserAssignments", fields: [userId], references: [id], onDelete: SetNull)
+  groupId     String?
+  group       ReviewGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  weekKey     String // ISO week, e.g. "2026-W36"
+  status      String       @default("todo") // todo, done
+  createdAt   DateTime     @default(now())
+  completedAt DateTime?
+
+  @@unique([reviewId, weekKey])
+  @@index([userId, weekKey])
+  @@index([groupId, weekKey])
+}
+
+// Per-user read pointer for the activity feed (notification bell).
+model NotificationRead {
+  userId     String   @id
+  lastReadAt DateTime @default(now())
+}
+
+// One row per device the user enabled web push on (iPhone PWA, desktop, …).
+// The endpoint is the push service's address; a 404/410 on send means the
+// subscription died (icon deleted from the home screen, revoked in Settings)
+// and the row is deleted by lib/push.ts.
+model PushSubscription {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint       String    @unique
+  p256dh         String
+  auth           String
+  userAgent      String?
+  createdAt      DateTime  @default(now())
+  lastNotifiedAt DateTime?
+
+  @@index([userId])
+}
+
+// Reply templates for the reply factory — seeded on first read if empty.
+model ReplyTemplate {
+  id        String   @id @default(cuid())
+  title     String
+  category  String // bedankt, reparatie, communicatie, klacht, algemeen
+  body      String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+// ─── Analytics (Phase 2+) ───
+
+model AnalyticsEvent {
+  id         String   @id @default(uuid())
+  eventName  String
+  sessionId  String
+  visitorId  String
+  occurredAt DateTime
+  properties Json
+
+  @@index([eventName])
+  @@index([sessionId])
+  @@index([visitorId])
+  @@index([occurredAt])
+}
+
+model AnalyticsSession {
+  id          String    @id @default(uuid())
+  visitorId   String
+  startedAt   DateTime
+  endedAt     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deviceType  String?
+  browser     String?
+  os          String?
+  country     String?
+  region      String?
+  city        String?
+  source      String?
+  medium      String?
+  campaign    String?
+  landingPage String?
+  pageViews   Int       @default(0)
+  duration    Int? // seconds
+
+  @@index([visitorId])
+  @@index([startedAt])
+  @@index([country])
+}
+
+// ─── Automations: recurring obligations, uptime incidents, system activity ───
+
+// A recurring obligation (post the blogpost before 15:00 every weekday).
+// Never rendered on the board itself — the sweep materializes a real Task row
+// per due day, so the assignee/status/calendar machinery is reused as-is.
+model RecurringTask {
+  id                  String   @id @default(cuid())
+  title               String
+  description         String?
+  category            String   @default("algemeen")
+  priority            String   @default("normal")
+  // Minutes since local midnight in `timezone` (1020 = 15:00).
+  deadlineMinutes     Int      @default(1020)
+  // Optional end-of-day cut-off. The deadline is the target you aim for; this is
+  // the last moment the day still counts as done. Null = the deadline is hard.
+  lateUntilMinutes    Int?
+  timezone            String   @default("Europe/Brussels")
+  days                Int[] // ISO weekday numbers: 1=ma .. 7=zo
+  remindBeforeMinutes Int      @default(30)
+  assigneeId          String?
+  active              Boolean  @default(true)
+  // Once-per-day guards, plain YYYY-MM-DD in the task's timezone.
+  lastCompletedDate   String?
+  lastMissedDate      String?
+  lastRemindedDate    String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([active])
+}
+
+// One row per up→down transition, closed on recovery. The 1-minute check is a
+// sample, not a guarantee: a blip shorter than the interval never exists here.
+model UptimeIncident {
+  id          String    @id @default(cuid())
+  target      String
+  status      String    @default("down") // down, resolved
+  statusCode  Int?
+  errorMsg    String?
+  startedAt   DateTime  @default(now())
+  endedAt     DateTime?
+  durationSec Int?
+  createdAt   DateTime  @default(now())
+
+  @@index([target, startedAt])
+}
+
+// Generic system-event feed (uptime, cron digests, Telegram bot actions).
+// The bell merges these with review actions at read time; nothing else reads
+// this table, so it stays deliberately schemaless beyond title/detail.
+model ActivityEvent {
+  id        String   @id @default(cuid())
+  type      String // uptime_down, uptime_up, ads_digest, briefing, task_created_telegram, recurring_missed, recurring_reminder, telegram_error
+  title     String?
+  detail    String?
+  meta      String?
+  actorId   String? // "cron" for system events, a user id when a person caused it
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([type])
+}
+
+// Single-row webhook bookkeeping (id "main"): the last Telegram update_id we
+// processed, so a Telegram retry can never create a second task.
+model TelegramState {
+  id           String   @id @default("main")
+  lastUpdateId BigInt   @default(0)
+  updatedAt    DateTime @updatedAt
+}

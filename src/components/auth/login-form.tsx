@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Lock } from "lucide-react";
+import { Loader2, User } from "lucide-react";
+import Image from "next/image";
 
 export function LoginForm() {
+  const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -25,12 +27,13 @@ export function LoginForm() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ login, password }),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        const data = await res.json();
-        setError(data.error || "Ongeldig wachtwoord");
+        setError(data.error || "Ongeldige inloggegevens");
         setLoading(false);
         return;
       }
@@ -46,17 +49,35 @@ export function LoginForm() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm border-border">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <Lock className="h-6 w-6 text-primary" />
-          </div>
-          <CardTitle className="text-xl">QS Pro Beheer</CardTitle>
-          <CardDescription>
-            Voer het wachtwoord in om toegang te krijgen
-          </CardDescription>
+        <CardHeader className="text-center pb-2">
+          <Image
+            src="/logo-icon.png"
+            alt="QuickSolutions"
+            width={48}
+            height={48}
+            className="mx-auto mb-3 h-12 w-12 rounded-xl object-contain"
+          />
+          <CardTitle className="text-xl">QuickSolutionsPro</CardTitle>
+          <CardDescription>Control Center</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="login">Gebruikersnaam of e-mail</Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="login"
+                  type="text"
+                  placeholder="gebruiker@email.com"
+                  className="pl-9"
+                  value={login}
+                  onChange={(e) => { setLogin(e.target.value); setError(""); }}
+                  autoFocus
+                  disabled={loading}
+                />
+              </div>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="password">Wachtwoord</Label>
               <Input
@@ -64,18 +85,14 @@ export function LoginForm() {
                 type="password"
                 placeholder="••••••••"
                 value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  setError("");
-                }}
-                autoFocus
+                onChange={(e) => { setPassword(e.target.value); setError(""); }}
                 disabled={loading}
               />
             </div>
             {error && (
               <p className="text-sm text-destructive">{error}</p>
             )}
-            <Button type="submit" className="w-full" disabled={loading || !password}>
+            <Button type="submit" className="w-full bg-brand text-brand-foreground hover:bg-brand/90" disabled={loading || !login || !password}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

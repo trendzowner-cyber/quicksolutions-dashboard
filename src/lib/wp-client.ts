@@ -18,6 +18,14 @@ function wcAuth(): string {
   ).toString("base64");
 }
 
+// Kinsta's bot protection challenges requests with generic/headless User-Agents
+// (Node fetch sends "undici"). These headers identify our dashboard so the
+// edge lets our API calls through.
+const DASHBOARD_HEADERS = {
+  "User-Agent": "QuicksolutionsDashboard/1.0",
+  "X-QS-Dashboard": "quicksolutions-dashboard",
+};
+
 // ─── WordPress (Posts, Pages, Media, Yoast) ───
 
 export async function wpFetch<T>(
@@ -28,6 +36,7 @@ export async function wpFetch<T>(
   const res = await fetch(url, {
     ...options,
     headers: {
+      ...DASHBOARD_HEADERS,
       Authorization: `Basic ${wpAuth()}`,
       "Content-Type": "application/json",
       ...options?.headers,
@@ -92,6 +101,7 @@ export async function getSEOMeta(postId: number, postType = "post") {
     `${getYoastUrl()}/yoast/v1/get_meta?post_id=${postId}&post_type=${postType}`,
     {
       headers: {
+        ...DASHBOARD_HEADERS,
         Authorization: `Basic ${wpAuth()}`,
       },
     }
@@ -110,6 +120,7 @@ export async function updateSEOMeta(
     {
       method: "POST",
       headers: {
+        ...DASHBOARD_HEADERS,
         Authorization: `Basic ${wpAuth()}`,
         "Content-Type": "application/json",
       },
@@ -130,6 +141,7 @@ export async function wcFetch<T>(
   const res = await fetch(url, {
     ...options,
     headers: {
+      ...DASHBOARD_HEADERS,
       Authorization: `Basic ${wcAuth()}`,
       "Content-Type": "application/json",
       ...options?.headers,

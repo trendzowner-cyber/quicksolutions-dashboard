@@ -1,7 +1,7 @@
 import { getStats, getOrders } from "@/lib/wp-client";
 import type { WCOrder } from "@/types/woocommerce";
 import { StatsCard } from "@/components/dashboard/stats-card";
-import { DashboardCharts } from "./dashboard-charts";
+import { DashboardCharts } from "@/components/dashboard/dashboard-charts";
 import { Package, FileText, ShoppingCart, TrendingUp } from "lucide-react";
 
 export async function DashboardData() {

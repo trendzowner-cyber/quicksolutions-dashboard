@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,9 +9,9 @@ import { Separator } from "@/components/ui/separator";
 import {
   SearchCheck,
   Loader2,
-  AlertTriangle,
   CheckCircle2,
   ArrowUpRight,
+  History,
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -26,10 +26,41 @@ const STEPS = [
 
 export default function AuditPage() {
   const [scanning, setScanning] = useState(false);
+  const [loadingSaved, setLoadingSaved] = useState(true);
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
   const [issues, setIssues] = useState<AuditIssue[]>([]);
   const [scanned, setScanned] = useState({ products: 0, posts: 0, pages: 0 });
+  const [lastScan, setLastScan] = useState<{
+    scannedAt: string;
+    totalIssues: number;
+    highCount: number;
+    mediumCount: number;
+    lowCount: number;
+  } | null>(null);
+
+  // Load last audit on mount
+  useEffect(() => {
+    async function loadSaved() {
+      try {
+        const res = await fetch("/api/audit");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.scan) {
+            setLastScan(data.scan);
+          }
+          if (data.issues?.length > 0) {
+            setIssues(data.issues);
+          }
+        }
+      } catch {
+        // No saved audit yet
+      } finally {
+        setLoadingSaved(false);
+      }
+    }
+    loadSaved();
+  }, []);
 
   async function handleStartAudit() {
     setScanning(true);
@@ -62,13 +93,16 @@ export default function AuditPage() {
       setScanned((s) => ({ ...s, pages: pages.length }));
       setProgress(40);
 
-      // Step 4: Quick local checks (no AI needed for basic issues)
+      // Step 4: Quick local checks
       setCurrentStep(3);
       const localIssues: AuditIssue[] = [];
 
-      // Quick check: products
       for (const p of products.slice(0, 100)) {
-        if (!p.short_description || (typeof p.short_description === "string" && p.short_description.length < 20)) {
+        if (
+          !p.short_description ||
+          (typeof p.short_description === "string" &&
+            p.short_description.length < 20)
+        ) {
           localIssues.push({
             itemId: p.id,
             itemType: "product",
@@ -76,10 +110,14 @@ export default function AuditPage() {
             severity: "high",
             category: "short_content",
             description: "Korte beschrijving ontbreekt of is te kort",
-            suggestion: "Voeg een korte beschrijving toe van minstens 20 karakters",
+            suggestion:
+              "Voeg een korte beschrijving toe van minstens 20 karakters",
           });
         }
-        if (!p.description || (typeof p.description === "string" && p.description.length < 50)) {
+        if (
+          !p.description ||
+          (typeof p.description === "string" && p.description.length < 50)
+        ) {
           localIssues.push({
             itemId: p.id,
             itemType: "product",
@@ -87,7 +125,8 @@ export default function AuditPage() {
             severity: "medium",
             category: "short_content",
             description: "Volledige beschrijving ontbreekt of is erg kort",
-            suggestion: "Voeg een uitgebreide productbeschrijving toe (150+ woorden)",
+            suggestion:
+              "Voeg een uitgebreide productbeschrijving toe (150+ woorden)",
           });
         }
         if (!p.images || p.images.length === 0) {
@@ -104,7 +143,7 @@ export default function AuditPage() {
       }
       setProgress(70);
 
-      // Step 5: Quick checks for posts
+      // Quick checks for posts
       for (const p of posts.slice(0, 50)) {
         const title = p.title?.rendered || "";
         if (title.length < 30) {
@@ -115,27 +154,33 @@ export default function AuditPage() {
             severity: "low",
             category: "bad_title",
             description: "Blog titel is vrij kort (minder dan 30 karakters)",
-            suggestion: "Overweeg een langere, meer beschrijvende titel met keywords",
+            suggestion:
+              "Overweeg een langere, meer beschrijvende titel met keywords",
           });
         }
       }
       setProgress(85);
 
-      // Step 6: Deep AI check for a sample (first 10 of each type)
+      // Deep AI check for a sample
       const aiItems = [
         ...products.slice(0, 10).map((p: Record<string, unknown>) => ({
           id: p.id,
           type: "product",
           title: p.name,
           metaDescription: "",
-          contentLength: (typeof p.description === "string" ? p.description.length : 0) || 0,
+          contentLength:
+            (typeof p.description === "string" ? p.description.length : 0) || 0,
         })),
         ...posts.slice(0, 10).map((p: Record<string, unknown>) => ({
           id: p.id,
           type: "post",
           title: (p.title as { rendered: string })?.rendered || "",
-          metaDescription: (p.yoast_head_json as { description?: string })?.description || "",
-          contentLength: (typeof (p.content as { rendered: string })?.rendered === "string" ? (p.content as { rendered: string }).rendered.length : 0) || 0,
+          metaDescription:
+            (p.yoast_head_json as { description?: string })?.description || "",
+          contentLength:
+            (typeof (p.content as { rendered: string })?.rendered === "string"
+              ? (p.content as { rendered: string }).rendered.length
+              : 0) || 0,
         })),
       ];
 
@@ -158,12 +203,38 @@ export default function AuditPage() {
 
       setIssues(localIssues);
 
+      // Persist to database
+      try {
+        await fetch("/api/audit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            issues: localIssues,
+            productCount: products.length,
+            postCount: posts.length,
+            pageCount: pages.length,
+          }),
+        });
+      } catch {
+        // Non-fatal if save fails
+      }
+
       const highCount = localIssues.filter((i) => i.severity === "high").length;
-      const medCount = localIssues.filter((i) => i.severity === "medium").length;
+      const medCount = localIssues.filter(
+        (i) => i.severity === "medium"
+      ).length;
       const lowCount = localIssues.filter((i) => i.severity === "low").length;
 
+      setLastScan({
+        scannedAt: new Date().toISOString(),
+        totalIssues: localIssues.length,
+        highCount,
+        mediumCount: medCount,
+        lowCount,
+      });
+
       toast.success(
-        `Audit voltooid: ${localIssues.length} issues gevonden (${highCount} hoog, ${medCount} medium, ${lowCount} laag)`
+        `Audit voltooid & opgeslagen: ${localIssues.length} issues gevonden (${highCount} hoog, ${medCount} medium, ${lowCount} laag)`
       );
     } catch {
       toast.error("Fout tijdens audit");
@@ -184,6 +255,24 @@ export default function AuditPage() {
           Volledige site scan op SEO problemen
         </p>
       </div>
+
+      {/* Show last scan info */}
+      {loadingSaved && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          Laatste audit laden...
+        </div>
+      )}
+
+      {!loadingSaved && lastScan && !scanning && issues.length > 0 && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <History className="h-3 w-3" />
+          Laatste scan:{" "}
+          {new Date(lastScan.scannedAt).toLocaleString("nl-BE")}
+          {" — "}
+          {lastScan.totalIssues} issues
+        </div>
+      )}
 
       {!scanning && issues.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -344,7 +433,11 @@ export default function AuditPage() {
           </div>
 
           <div className="flex justify-center pt-4">
-            <Button variant="outline" onClick={handleStartAudit} className="gap-2">
+            <Button
+              variant="outline"
+              onClick={handleStartAudit}
+              className="gap-2"
+            >
               <SearchCheck className="h-4 w-4" />
               Scan Opnieuw
             </Button>

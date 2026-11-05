@@ -15,9 +15,10 @@ function NewBlogForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const prefilledTopic = searchParams.get("topic") || "";
+  const prefilledKeywords = searchParams.get("keywords") || "";
 
   const [topic, setTopic] = useState(prefilledTopic);
-  const [keywords, setKeywords] = useState("");
+  const [keywords, setKeywords] = useState(prefilledKeywords);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -163,6 +164,7 @@ function NewBlogForm() {
       {hasContent && (
         <>
           {seoData && (
+            <>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="rounded-lg border border-border bg-card p-3">
                 <p className="text-xs text-muted-foreground mb-1">
@@ -179,6 +181,22 @@ function NewBlogForm() {
                 </p>
               </div>
             </div>
+            {/* Interne links are the part of "professional SEO" you cannot see
+                in the rendered article — show exactly where they point. */}
+            {Array.isArray(seoData.internalLinks) && seoData.internalLinks.length > 0 && (
+              <div className="rounded-lg border border-border bg-card p-3">
+                <p className="text-xs text-muted-foreground mb-1">Interne links</p>
+                <ul className="space-y-0.5">
+                  {(seoData.internalLinks as { anchorText: string; url: string }[]).map((l) => (
+                    <li key={`${l.url}-${l.anchorText}`} className="text-xs truncate">
+                      <span className="font-medium">{l.anchorText}</span>
+                      <span className="text-muted-foreground"> → {l.url.replace(/^https?:\/\/[^/]+/, "")}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            </>
           )}
 
           <PostEditor

@@ -81,7 +81,23 @@ export function AdsOverview() {
     <Card className="border-border bg-gradient-to-br from-amber-500/5 to-transparent">
       <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="text-base flex items-center gap-2"><BarChart3 className="h-4 w-4 text-amber-400"/>Google Ads</CardTitle></CardHeader>
       <CardContent><p className="text-sm text-muted-foreground">{error.length > 150 ? "Google Ads API tijdelijk niet beschikbaar" : error}</p>
-      <button onClick={() => fetchData(selectedAccount, dateRange)} className="text-xs text-primary mt-2 flex items-center gap-1 hover:underline"><RotateCw className="h-3 w-3"/>Opnieuw proberen</button></CardContent></Card>
+      <div className="flex items-center gap-3 mt-2">
+        <button onClick={() => fetchData(selectedAccount, dateRange)} className="text-xs text-primary flex items-center gap-1 hover:underline"><RotateCw className="h-3 w-3"/>Opnieuw proberen</button>
+        {error.includes("verbinden") && (
+          <button
+            onClick={async () => {
+              try {
+                const res = await fetch("/api/ads/auth-url");
+                const d = await res.json();
+                if (d.url) window.location.href = d.url;
+              } catch {}
+            }}
+            className="text-xs flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary text-primary-foreground hover:opacity-90"
+          >
+            Google verbinden
+          </button>
+        )}
+      </div></CardContent></Card>
   );
 
   return (

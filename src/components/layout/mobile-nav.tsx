@@ -1,9 +1,11 @@
 "use client";
 
-import { Menu, Sparkles } from "lucide-react";
+import { Menu } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Sidebar } from "./sidebar";
+import { ActivityBell } from "@/components/activity/activity-bell";
 import { useState } from "react";
 
 export function MobileNav() {
@@ -23,8 +25,12 @@ export function MobileNav() {
       </Sheet>
 
       <div className="flex items-center gap-2">
-        <Sparkles className="h-4 w-4 text-primary" />
-        <span className="text-sm font-semibold">QS Pro Beheer</span>
+        <Image src="/logo-icon.png" alt="QuickSolutions" width={24} height={24} className="h-5 w-5 object-contain" />
+        <span className="text-sm font-semibold">QuickSolutions</span>
+      </div>
+
+      <div className="ml-auto">
+        <ActivityBell mode="mobile" />
       </div>
     </div>
   );

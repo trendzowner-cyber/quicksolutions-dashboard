@@ -70,10 +70,10 @@ export function OrdersTable({ orders, loading }: OrdersTableProps) {
         <TableRow>
           <TableHead>Order</TableHead>
           <TableHead>Klant</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Datum</TableHead>
+          <TableHead className="hidden sm:table-cell">Status</TableHead>
+          <TableHead className="hidden sm:table-cell">Datum</TableHead>
           <TableHead className="text-right">Totaal</TableHead>
-          <TableHead className="w-20"></TableHead>
+          <TableHead className="w-16"></TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -82,19 +82,31 @@ export function OrdersTable({ orders, loading }: OrdersTableProps) {
           return (
             <TableRow key={order.id}>
               <TableCell className="font-medium text-sm">
-                {order.number}
+                <div className="flex flex-col">
+                  <span>{order.number}</span>
+                  <span className="text-[10px] text-muted-foreground sm:hidden">
+                    {new Intl.DateTimeFormat("nl-BE", {
+                      day: "numeric",
+                      month: "short",
+                    }).format(new Date(order.date_created))}
+                    {" · "}
+                    <Badge variant={st.variant} className="text-[9px] py-0 h-4 inline-flex align-middle">
+                      {st.label}
+                    </Badge>
+                  </span>
+                </div>
               </TableCell>
               <TableCell className="text-sm">
                 {order.billing?.first_name
                   ? `${order.billing.first_name} ${order.billing.last_name}`
                   : "Gast"}
               </TableCell>
-              <TableCell>
+              <TableCell className="hidden sm:table-cell">
                 <Badge variant={st.variant} className="text-xs">
                   {st.label}
                 </Badge>
               </TableCell>
-              <TableCell className="text-sm text-muted-foreground">
+              <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
                 {new Intl.DateTimeFormat("nl-BE", {
                   day: "numeric",
                   month: "short",

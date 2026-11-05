@@ -1,20 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifySession } from "@/lib/auth";
-import { refreshAccessToken, queryGoogleAds, buildCampaignQuery, buildAccountQuery } from "@/lib/google-ads";
-
-const ACCOUNT_IDS = (process.env.GOOGLE_ADS_CUSTOMER_IDS || "480-889-6252").split(",").map((s) => s.trim());
-const ACCOUNT_LABELS: Record<string, string> = { "480-889-6252": "Google Shopping", "668-709-2345": "Repair" };
+import {
+  queryGoogleAds,
+  buildCampaignQuery,
+  buildAccountQuery,
+  getAdAccessToken,
+  getAdRefreshToken,
+  ADS_ACCOUNTS as ACCOUNT_IDS,
+  ADS_ACCOUNT_LABELS as ACCOUNT_LABELS,
+} from "@/lib/google-ads";
 
 export async function GET(request: NextRequest) {
   if (!(await verifySession())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
-    const refreshToken = process.env.GOOGLE_ADS_REFRESH_TOKEN;
-    if (!refreshToken) return NextResponse.json({ error: "Google Ads not configured" }, { status: 500 });
+    const refreshToken = await getAdRefreshToken();
+    if (!refreshToken) return NextResponse.json({ error: "Google Ads niet verbonden" }, { status: 500 });
 
     const accountId = request.nextUrl.searchParams.get("accountId") || ACCOUNT_IDS[0];
     const dateRange = request.nextUrl.searchParams.get("dateRange") || "LAST_30_DAYS";
 
-    const { access_token } = await refreshAccessToken(refreshToken);
+    // Refreshes and rotates the stored token; drops the row when Google
+    // rejects it so a fresh OAuth connect can save a new one.
+    let access_token: string;
+    try {
+      access_token = await getAdAccessToken();
+    } catch (err) {
+      return NextResponse.json(
+        { error: String(err), details: "Google Ads opnieuw verbinden nodig — klik op Google verbinden" },
+        { status: 500 }
+      );
+    }
+
     const [campaignRes, accountRes] = await Promise.all([
       queryGoogleAds(accountId, buildCampaignQuery(dateRange), access_token),
       queryGoogleAds(accountId, buildAccountQuery(dateRange), access_token),

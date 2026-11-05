@@ -10,9 +10,17 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl;
     const page = searchParams.get("page") || "1";
-    const perPage = searchParams.get("per_page") || "10";
+    const perPage = searchParams.get("per_page") || "20";
+    const after = searchParams.get("after") || undefined;
+    const before = searchParams.get("before") || undefined;
+    const orderby = searchParams.get("orderby") || "date";
+    const order = searchParams.get("order") || "desc";
 
-    const { data, headers } = await getOrders({ page, per_page: perPage });
+    const params: Record<string, string> = { page, per_page: perPage, orderby, order };
+    if (after) params.after = after;
+    if (before) params.before = before;
+
+    const { data, headers } = await getOrders(params);
     const total = parseInt(headers.get("X-WP-Total") || "0");
 
     return NextResponse.json({ data, total, page: parseInt(page) });

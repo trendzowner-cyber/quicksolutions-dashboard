@@ -2,9 +2,30 @@ import { NextResponse } from "next/server";
 import { verifySession } from "@/lib/auth";
 import { callDeepSeek } from "@/lib/deepseek";
 
-const CHAT_SYSTEM = `Je bent een AI-assistent voor quicksolutionspro.be, een Belgische refurbished electronics webshop. Je helpt gebruikers met vragen over de website, producten, en het beheerpaneel.
+const ADMIN_PASSWORD = process.env.DASHBOARD_PASSWORD || "";
 
-Je kan de volgende admin commando's uitvoeren als de gebruiker het admin wachtwoord geeft:
+// The admin password used to be interpolated into the system prompt, so the
+// master credential was shipped to DeepSeek on every single chat call. The model
+// never needed it — it only had to decide whether the user was authorized. So we
+// now compare server-side, scrub the password out of everything we forward, and
+// tell the model only the resulting yes/no.
+function stripAdminPassword(text: string): { text: string; authorized: boolean } {
+  if (!ADMIN_PASSWORD || !text.includes(ADMIN_PASSWORD)) {
+    return { text, authorized: false };
+  }
+  return { text: text.split(ADMIN_PASSWORD).join("[wachtwoord]"), authorized: true };
+}
+
+function buildSystemPrompt(authorized: boolean): string {
+  const authLine = authorized
+    ? "De gebruiker IS geautoriseerd voor admin-commando's. Voer het commando uit en bevestig."
+    : "De gebruiker is NIET geautoriseerd. Vraag beleefd om het admin wachtwoord voordat u een admin-commando uitvoert.";
+
+  return `Je bent een AI-assistent voor quicksolutionspro.be, een Belgische refurbished electronics webshop. Je helpt gebruikers met vragen over de website, producten, en het beheerpaneel.
+
+${authLine}
+
+De admin commando's zijn:
 - "VERANDER THEMA [licht/donker]" — wijzig het thema
 - "MAAK BLOGPOST [onderwerp]" — start blog post generatie
 - "SCAN SEO" — start SEO audit
@@ -16,10 +37,6 @@ Je kan de volgende admin commando's uitvoeren als de gebruiker het admin wachtwo
 
 Als een gebruiker vraagt om een plugin te maken (bijv: "maak een plugin die een WhatsApp knop toevoegt"), gebruik dan het BOUW PLUGIN commando met een duidelijke beschrijving van wat de plugin moet doen.
 
-Als een gebruiker een admin commando probeert zonder wachtwoord, vraag dan beleefd om het admin wachtwoord.
-
-Als het admin wachtwoord correct is (${process.env.DASHBOARD_PASSWORD}), voer het commando uit en geef een bevestiging.
-
 Voor gewone vragen: geef behulpzame antwoorden over refurbished producten, de webshop, bestellingen, garantie, etc.
 
 Regels:
@@ -27,11 +44,8 @@ Regels:
 - Vriendelijk en professioneel
 - Houd antwoorden kort (max 3-4 zinnen tenzij het technisch is)
 - Gebruik "u" in plaats van "je"
-- Voor commando's: antwoord met JSON: {"command": "COMMANDO_NAAM", "args": {}, "message": "bevestiging"}
-- Nederlands (Belgisch — nl_BE)
-- Vriendelijk en professioneel
-- Houd antwoorden kort (max 3-4 zinnen tenzij het technisch is)
-- Gebruik "u" in plaats van "je"`;
+- Voor commando's: antwoord met JSON: {"command": "COMMANDO_NAAM", "args": {}, "message": "bevestiging"}`;
+}
 
 export async function POST(request: Request) {
   if (!(await verifySession())) {
@@ -41,15 +55,26 @@ export async function POST(request: Request) {
   try {
     const { message, history } = await request.json();
 
+    // Scrub the admin password out of everything forwarded to DeepSeek and
+    // resolve authorization server-side. History is checked too: a password
+    // typed in an earlier turn would otherwise still be replayed to the model.
+    const scrub = stripAdminPassword(String(message ?? ""));
+    const authorized =
+      scrub.authorized ||
+      (history || []).some(
+        (m: { content?: string }) =>
+          stripAdminPassword(String(m?.content ?? "")).authorized
+      );
+
     const messages = [
-      { role: "system", content: CHAT_SYSTEM },
+      { role: "system", content: buildSystemPrompt(authorized) },
       ...(history || []).map(
         (m: { role: string; content: string }) => ({
           role: m.role,
-          content: m.content,
+          content: stripAdminPassword(String(m.content ?? "")).text,
         })
       ),
-      { role: "user", content: message },
+      { role: "user", content: scrub.text },
     ];
 
     // Use raw fetch to pass full message array

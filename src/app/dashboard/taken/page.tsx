@@ -1,354 +1,578 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { Plus, RefreshCw, Repeat } from "lucide-react";
 import {
-  Plus, Trash2, Check, Clock, Play, Pause, Timer, Calendar, Eye, EyeOff, LogIn, LogOut,
-  Wrench, ShoppingBag, Store, Globe, FileText, Sparkles, ChevronRight
-} from "lucide-react";
+  TaskBoard,
+} from "@/components/taken/task-board";
+import { TaskList, type SortField, type SortState } from "@/components/taken/task-list";
+import { TaskCalendar } from "@/components/taken/task-calendar";
+import { BulkActionsBar } from "@/components/taken/bulk-actions-bar";
+import {
+  EMPTY_FILTERS,
+  TaskToolbar,
+  hasActiveFilters,
+  type TaskFilters,
+  type TaskView,
+} from "@/components/taken/task-toolbar";
+import {
+  TaskCreateDialog,
+  TaskDetailDialog,
+} from "@/components/taken/task-dialogs";
+import { RecurringDialog } from "@/components/taken/recurring-dialog";
+import {
+  CLOSED_STATUSES,
+  NONE,
+  OPEN_STATUSES,
+  isClosedStatus,
+  isOverdue,
+  priorityMeta,
+  type TaskData,
+  type TaskUser,
+} from "@/lib/tasks";
 
-// ─── Types ───
-interface TimeLog { start: string; end?: string; duration?: number; }
-interface Task {
-  id: string; title: string; category: string; status: "todo" | "in_progress" | "done";
-  timeLogs: TimeLog[]; createdAt: string; completedAt?: string; date: string;
+async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(path, {
+    ...init,
+    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((data as { error?: string }).error || "Onbekende fout");
+  return data as T;
 }
-interface Session { start: string; end?: string; }
-interface TaskData { tasks: Task[]; sessions: Session[]; }
 
-// ─── Helpers ───
-function fmtDur(ms: number): string {
-  if (ms <= 0) return "0m";
-  const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000);
-  return h > 0 ? `${h}u ${m}m` : `${m}m`;
-}
-function fmtTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("nl-BE", { hour: "2-digit", minute: "2-digit" });
-}
-function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("nl-BE", { weekday: "short", day: "numeric", month: "short" });
-}
-function today(): string { return new Date().toISOString().slice(0, 10); }
-
-// ─── Constants ───
-const CATS = [
-  { key: "google-ads-repair", label: "Google Ads Repair", icon: Wrench, color: "text-amber-400", bg: "bg-amber-500/10", ring: "ring-amber-500/20" },
-  { key: "google-ads-shopping", label: "Google Ads Shopping", icon: ShoppingBag, color: "text-blue-400", bg: "bg-blue-500/10", ring: "ring-blue-500/20" },
-  { key: "google-merchant", label: "Google Merchant Center", icon: Store, color: "text-emerald-400", bg: "bg-emerald-500/10", ring: "ring-emerald-500/20" },
-  { key: "website", label: "Website", icon: Globe, color: "text-violet-400", bg: "bg-violet-500/10", ring: "ring-violet-500/20" },
-  { key: "blog", label: "Blog", icon: FileText, color: "text-rose-400", bg: "bg-rose-500/10", ring: "ring-rose-500/20" },
-];
-
-// ─── Component ───
 export default function TakenPage() {
+  const [tasks, setTasks] = useState<TaskData[]>([]);
+  const [users, setUsers] = useState<TaskUser[]>([]);
+  const [meId, setMeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<TaskData>({ tasks: [], sessions: [] });
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [newTitle, setNewTitle] = useState("");
-  const [newCat, setNewCat] = useState(CATS[0].key);
-  const [showAdd, setShowAdd] = useState(false);
-  const [showTimes, setShowTimes] = useState(true);
-  const [activeTask, setActiveTask] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"board" | "calendar">("board");
-  const [customCats, setCustomCats] = useState<Array<{key:string;label:string}>>([]);
-  const [newCustomCat, setNewCustomCat] = useState("");
-  const [_, setTick] = useState(0);
+  const [reloading, setReloading] = useState(false);
 
-  // Auth check
-  useEffect(() => { fetch("/api/auth/me").then(r => r.json()).then(d => setIsAdmin(d.role === "admin")).catch(() => {}); }, []);
-  // Load
-  const load = useCallback(async () => { setLoading(true); try { const r = await fetch("/api/tasks"); setData(await r.json()); } catch {} finally { setLoading(false); } }, []);
-  useEffect(() => { load(); }, [load]);
-  // Timer tick
-  useEffect(() => { if (!activeTask) return; const i = setInterval(() => setTick(t => t + 1), 10000); return () => clearInterval(i); }, [activeTask]);
+  const [view, setView] = useState<TaskView>("board");
+  const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState<TaskFilters>({
+    ...EMPTY_FILTERS,
+    showClosed: true,
+  });
+  const [sort, setSort] = useState<SortState>({ field: "priority", dir: "desc" });
 
-  async function save(d: TaskData) {
-    if (!isAdmin) return;
-    try { await fetch("/api/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d) }); } catch { toast.error("Opslaan mislukt"); }
-  }
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
-  // ─── Session ───
-  const activeSession = data.sessions?.find(s => !s.end);
-  function startSession() {
-    const s: Session = { start: new Date().toISOString() };
-    const updated = { ...data, sessions: [...(data.sessions || []), s] };
-    setData(updated); save(updated);
-    toast.success("Sessie gestart — " + fmtTime(s.start));
-  }
-  function endSession() {
-    if (!activeSession) return;
-    activeSession.end = new Date().toISOString();
-    const updated = { ...data, sessions: [...(data.sessions || [])] };
-    setData(updated); save(updated);
-    const dur = new Date(activeSession.end).getTime() - new Date(activeSession.start).getTime();
-    toast.success("Sessie beëindigd — " + fmtDur(dur));
-    if (activeTask) toggleTimer(activeTask);
-  }
+  const [detailTask, setDetailTask] = useState<TaskData | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createDefaults, setCreateDefaults] = useState<{ status?: string; dueDate?: string }>({});
+  const [recurringOpen, setRecurringOpen] = useState(false);
 
-  // ─── Tasks ───
-  function addTask() {
-    if (!newTitle.trim()) return;
-    const task: Task = { id: Date.now().toString(), title: newTitle.trim(), category: newCat, status: "todo", timeLogs: [], createdAt: new Date().toISOString(), date: today() };
-    const updated = { ...data, tasks: [...data.tasks, task] };
-    setData(updated); save(updated); setNewTitle(""); setShowAdd(false);
-    toast.success("Taak toegevoegd");
-  }
-  function updateTask(id: string, updates: Partial<Task>) {
-    const updated = { ...data, tasks: data.tasks.map(t => t.id === id ? { ...t, ...updates } : t) };
-    setData(updated); save(updated);
-  }
-  function deleteTask(id: string) {
-    const updated = { ...data, tasks: data.tasks.filter(t => t.id !== id) };
-    setData(updated); save(updated);
-  }
-  function toggleTimer(id: string) {
-    const task = data.tasks.find(t => t.id === id);
-    if (!task) return;
-    if (activeTask === id) {
-      const lastLog = task.timeLogs[task.timeLogs.length - 1];
-      if (lastLog && !lastLog.end) {
-        lastLog.end = new Date().toISOString();
-        lastLog.duration = new Date(lastLog.end).getTime() - new Date(lastLog.start).getTime();
+  const load = useCallback(async (silent = false) => {
+    if (silent) setReloading(true);
+    try {
+      const [tRes, uRes, meRes] = await Promise.all([
+        api<{ tasks: TaskData[] }>("/api/tasks"),
+        api<{ users: TaskUser[] }>("/api/users?scope=assignable").catch(() => ({ users: [] })),
+        api<{ user?: { id: string } }>("/api/auth/me").catch(
+          () => ({}) as { user?: { id: string } }
+        ),
+      ]);
+      setTasks(tRes.tasks ?? []);
+      setUsers(uRes.users ?? []);
+      setMeId(meRes.user?.id ?? null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Kan taken niet laden");
+    } finally {
+      setLoading(false);
+      setReloading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // Coming back to the tab refetches. This is what makes a task assigned while
+  // the board was open actually appear: the assignment arrives as a Telegram
+  // ping in another app, reading it takes you out of this tab, and the board is
+  // current again by the time you look. Deliberately not an interval — the
+  // board keeps its drag state to itself, and a background tick could land in
+  // the middle of a drag.
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === "visible") load(true);
+    };
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [load]);
+
+  // A worker card, a notification in the bell, or the Telegram link points at
+  // one task (`?task=<id>`). The id is resolved against the loaded board rather
+  // than fetched, so the dialog always opens with the same shape the board is
+  // holding.
+  //
+  // Keyed on the id instead of a once-ever flag: a second notification arriving
+  // while the board is already open used to be dropped on the floor. And when
+  // the id is not on the board yet the board is refetched once for it — a
+  // notification regularly beats the next load, and "the link opened nothing"
+  // is the worst possible answer.
+  const deepLinkOpening = useRef<string | null>(null);
+  const deepLinkOpened = useRef<string | null>(null);
+  useEffect(() => {
+    if (loading) return;
+
+    const id = new URLSearchParams(window.location.search).get("task");
+    if (!id || deepLinkOpened.current === id) return;
+
+    const match = tasks.find((t) => t.id === id);
+    if (!match) {
+      // Guarded so a link to a task that does not exist cannot spin.
+      if (tasks.length > 0 && deepLinkOpening.current !== id) {
+        deepLinkOpening.current = id;
+        load(true);
       }
-      updateTask(id, { timeLogs: [...task.timeLogs] });
-      setActiveTask(null);
-    } else {
-      if (activeTask) toggleTimer(activeTask);
-      task.timeLogs.push({ start: new Date().toISOString() });
-      updateTask(id, { timeLogs: [...task.timeLogs] });
-      setActiveTask(id);
-      toast.success("Timer: " + task.title);
+      return;
+    }
+
+    deepLinkOpened.current = id;
+    setDetailTask(match);
+    // Closed columns are hidden by default — a link to a finished task must not
+    // look like a link to nothing.
+    if (isClosedStatus(match.status)) {
+      setFilters((prev) => ({ ...prev, showClosed: true }));
+    }
+  }, [loading, tasks, load]);
+
+  // ─── Derived ───
+
+  const filtered = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return tasks.filter((t) => {
+      if (!filters.showClosed && isClosedStatus(t.status)) return false;
+      if (filters.status !== NONE && t.status !== filters.status) return false;
+      if (filters.priority !== NONE && t.priority !== filters.priority) return false;
+      if (filters.category !== NONE && t.category !== filters.category) return false;
+      if (filters.assigneeId !== NONE && t.assignee?.id !== filters.assigneeId) {
+        return false;
+      }
+      if (filters.mineOnly && t.assignee?.id !== meId) return false;
+      if (filters.overdueOnly && !isOverdue(t.dueDate, t.status)) return false;
+      if (needle) {
+        const haystack = `${t.title} ${t.description ?? ""}`.toLowerCase();
+        if (!haystack.includes(needle)) return false;
+      }
+      return true;
+    });
+  }, [tasks, search, filters, meId]);
+
+  const sorted = useMemo(() => {
+    const dir = sort.dir === "asc" ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      switch (sort.field) {
+        case "title":
+          return a.title.localeCompare(b.title, "nl") * dir;
+        case "priority":
+          return (priorityMeta(a.priority).weight - priorityMeta(b.priority).weight) * dir;
+        case "dueDate":
+          // Undated tasks sort last regardless of direction.
+          if (!a.dueDate && !b.dueDate) return 0;
+          if (!a.dueDate) return 1;
+          if (!b.dueDate) return -1;
+          return a.dueDate.localeCompare(b.dueDate) * dir;
+        case "createdAt":
+          return a.createdAt.localeCompare(b.createdAt) * dir;
+        case "status":
+          return a.status.localeCompare(b.status) * dir;
+        default:
+          return 0;
+      }
+    });
+  }, [filtered, sort]);
+
+  const stats = useMemo(() => {
+    const open = tasks.filter((t) => !isClosedStatus(t.status));
+    return {
+      total: tasks.length,
+      open: open.length,
+      overdue: open.filter((t) => isOverdue(t.dueDate, t.status)).length,
+      done: tasks.filter((t) => t.status === "done").length,
+    };
+  }, [tasks]);
+
+  const boardStatuses = filters.showClosed
+    ? [...OPEN_STATUSES, ...CLOSED_STATUSES]
+    : OPEN_STATUSES;
+
+  // ─── Mutations ───
+
+  /**
+   * Moves a task into a column at a position and renumbers both affected
+   * columns, so the dense indices the server stores always stay contiguous.
+   */
+  const reorder = useCallback(
+    async (taskId: string, toStatus: string, toIndex: number) => {
+      const moved = tasks.find((t) => t.id === taskId);
+      if (!moved) return;
+      const fromStatus = moved.status;
+
+      const target = tasks
+        .filter((t) => t.status === toStatus && t.id !== taskId)
+        .sort((a, b) => a.sortOrder - b.sortOrder);
+      const index = Math.max(0, Math.min(toIndex, target.length));
+      target.splice(index, 0, { ...moved, status: toStatus });
+
+      const source =
+        fromStatus === toStatus
+          ? []
+          : tasks
+              .filter((t) => t.status === fromStatus && t.id !== taskId)
+              .sort((a, b) => a.sortOrder - b.sortOrder);
+
+      const orderOf = new Map<string, number>();
+      target.forEach((t, i) => orderOf.set(t.id, i));
+      source.forEach((t, i) => orderOf.set(t.id, i));
+
+      const previous = tasks;
+      setTasks(
+        tasks.map((t) => {
+          const next = orderOf.get(t.id);
+          if (next === undefined) return t;
+          return {
+            ...t,
+            status: t.id === taskId ? toStatus : t.status,
+            sortOrder: next,
+            completedAt:
+              t.id === taskId
+                ? toStatus === "done"
+                  ? new Date().toISOString()
+                  : null
+                : t.completedAt,
+          };
+        })
+      );
+
+      try {
+        await api("/api/tasks", {
+          method: "PUT",
+          body: JSON.stringify({
+            tasks: [
+              ...target.map((t, i) => ({ id: t.id, status: toStatus, sortOrder: i })),
+              ...source.map((t, i) => ({ id: t.id, sortOrder: i })),
+            ],
+          }),
+        });
+      } catch (err) {
+        setTasks(previous);
+        toast.error(err instanceof Error ? err.message : "Verplaatsen mislukt");
+        load(true);
+      }
+    },
+    [tasks, load]
+  );
+
+  /** Column change from a menu or inline select — always lands at the bottom. */
+  const moveTask = useCallback(
+    (id: string, status: string) => {
+      const task = tasks.find((t) => t.id === id);
+      if (!task || task.status === status) return;
+      reorder(id, status, Number.MAX_SAFE_INTEGER);
+    },
+    [tasks, reorder]
+  );
+
+  async function deleteOne(id: string) {
+    const task = tasks.find((t) => t.id === id);
+    if (!task || !confirm(`"${task.title}" verwijderen?`)) return;
+    const previous = tasks;
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    try {
+      await api(`/api/tasks/${id}`, { method: "DELETE" });
+      toast.success("Taak verwijderd");
+    } catch (err) {
+      setTasks(previous);
+      toast.error(err instanceof Error ? err.message : "Verwijderen mislukt");
     }
   }
-  function addCustomCat() {
-    if (!newCustomCat.trim()) return;
-    const key = newCustomCat.trim().toLowerCase().replace(/\s+/g, "-");
-    setCustomCats([...customCats, { key, label: newCustomCat.trim() }]);
-    setNewCat(key); setNewCustomCat("");
+
+  async function bulkApply(patch: {
+    status?: string;
+    priority?: string;
+    assigneeId?: string | null;
+  }) {
+    const ids = [...selectedIds];
+    if (!ids.length) return;
+    setBulkBusy(true);
+    const previous = tasks;
+    setTasks((prev) =>
+      prev.map((t) => {
+        if (!ids.includes(t.id)) return t;
+        const next: TaskData = { ...t };
+        if (patch.status !== undefined) {
+          next.status = patch.status;
+          next.completedAt = patch.status === "done" ? new Date().toISOString() : null;
+        }
+        if (patch.priority !== undefined) next.priority = patch.priority;
+        if (patch.assigneeId !== undefined) {
+          next.assignee = patch.assigneeId
+            ? users.find((u) => u.id === patch.assigneeId) ?? null
+            : null;
+        }
+        return next;
+      })
+    );
+    try {
+      await api("/api/tasks", {
+        method: "PUT",
+        body: JSON.stringify({ tasks: ids.map((id) => ({ id, ...patch })) }),
+      });
+      toast.success(`${ids.length} taken bijgewerkt`);
+      setSelectedIds(new Set());
+    } catch (err) {
+      setTasks(previous);
+      toast.error(err instanceof Error ? err.message : "Bijwerken mislukt");
+    } finally {
+      setBulkBusy(false);
+    }
   }
 
-  const allCats = [...CATS, ...customCats];
-  const todayTasks = data.tasks.filter(t => t.date === today());
-  const totalTodayMs = todayTasks.reduce((s, t) => s + t.timeLogs.reduce((ss, l) => ss + (l.duration || 0), 0), 0);
-  const openCount = data.tasks.filter(t => t.status !== "done").length;
-  const doneCount = data.tasks.filter(t => t.status === "done").length;
-  const grouped = allCats.map(c => ({ ...c, tasks: data.tasks.filter(t => t.category === c.key) }));
+  async function bulkDelete() {
+    const ids = [...selectedIds];
+    if (!ids.length) return;
+    if (!confirm(`${ids.length} taken verwijderen?`)) return;
+    setBulkBusy(true);
+    const previous = tasks;
+    setTasks((prev) => prev.filter((t) => !ids.includes(t.id)));
+    try {
+      const result = await api<{ deleted: number; skipped: number }>("/api/tasks", {
+        method: "DELETE",
+        body: JSON.stringify({ ids }),
+      });
+      if (result.skipped > 0) {
+        toast.warning(`${result.deleted} verwijderd, ${result.skipped} overgeslagen (geen rechten)`);
+        load(true);
+      } else {
+        toast.success(`${result.deleted} taken verwijderd`);
+      }
+      setSelectedIds(new Set());
+    } catch (err) {
+      setTasks(previous);
+      toast.error(err instanceof Error ? err.message : "Verwijderen mislukt");
+    } finally {
+      setBulkBusy(false);
+    }
+  }
 
-  if (loading) return <div className="space-y-4">{Array.from({length:4}).map((_,i)=><Skeleton key={i} className="h-24 w-full rounded-xl"/>)}</div>;
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    setSelectedIds((prev) => {
+      const all = filtered.every((t) => prev.has(t.id)) && filtered.length > 0;
+      if (all) {
+        const next = new Set(prev);
+        filtered.forEach((t) => next.delete(t.id));
+        return next;
+      }
+      return new Set([...prev, ...filtered.map((t) => t.id)]);
+    });
+  }
+
+  function onSort(field: SortField) {
+    setSort((prev) =>
+      prev.field === field
+        ? { field, dir: prev.dir === "asc" ? "desc" : "asc" }
+        : { field, dir: field === "title" ? "asc" : "desc" }
+    );
+  }
+
+  /** Only merges into the list — the detail dialog owns its own draft, and
+   *  replacing its `task` prop mid-edit would reset the fields being typed. */
+  function applyUpdate(id: string, patch: Partial<TaskData>) {
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+  }
+
+  // ─── Render ───
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-9 w-full max-w-xl" />
+        <div className="flex gap-3 overflow-hidden">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-96 w-72 shrink-0 rounded-xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      {/* ═══ HEADER ═══ */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Taken</h1>
-          <p className="text-muted-foreground text-sm">{isAdmin ? "Project management & time tracking" : "Werkoverzicht"}</p>
+          <p className="text-sm text-muted-foreground">
+            {stats.open} open
+            {stats.overdue > 0 && (
+              <span className="text-rose-400"> • {stats.overdue} te laat</span>
+            )}
+            {" • "}
+            {stats.done} klaar van {stats.total}
+            {filtered.length !== stats.total && ` • ${filtered.length} getoond`}
+          </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Session control */}
-          {isAdmin && (
-            <div className="flex items-center gap-2 mr-2">
-              {activeSession ? (
-                <div className="flex items-center gap-2">
-                  <Badge className="gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1">
-                    <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"/>
-                    <span className="text-xs">{fmtTime(activeSession.start)}</span>
-                  </Badge>
-                  <Button size="sm" variant="outline" onClick={endSession} className="h-8 gap-1.5 border-rose-500/30 text-rose-400 hover:bg-rose-500/10">
-                    <LogOut className="h-3.5 w-3.5"/> Stop
-                  </Button>
-                </div>
-              ) : (
-                <Button size="sm" onClick={startSession} className="h-8 gap-1.5 bg-emerald-600 hover:bg-emerald-700">
-                  <LogIn className="h-3.5 w-3.5"/> Start Sessie
-                </Button>
-              )}
-            </div>
-          )}
-          {/* View toggle */}
-          <div className="flex items-center gap-0.5 bg-muted/50 rounded-lg border border-border p-0.5">
-            <Button size="sm" variant={viewMode==="board"?"default":"ghost"} className="h-7 text-xs" onClick={()=>setViewMode("board")}>Board</Button>
-            <Button size="sm" variant={viewMode==="calendar"?"default":"ghost"} className="h-7 text-xs gap-1" onClick={()=>setViewMode("calendar")}><Calendar className="h-3 w-3"/>Kalender</Button>
-          </div>
-          <Button size="sm" variant="outline" className="h-7 gap-1" onClick={()=>setShowTimes(!showTimes)}>
-            {showTimes ? <Eye className="h-3 w-3"/> : <EyeOff className="h-3 w-3"/>}
-            {showTimes ? "Tijden" : "Tijden"}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon-sm"
+            aria-label="Vernieuwen"
+            onClick={() => load(true)}
+            disabled={reloading}
+          >
+            <RefreshCw className={reloading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+          </Button>
+          <Button variant="outline" className="gap-1.5" onClick={() => setRecurringOpen(true)}>
+            <Repeat className="h-4 w-4" />
+            Terugkerend
+          </Button>
+          <Button
+            className="gap-1.5"
+            onClick={() => {
+              setCreateDefaults({});
+              setCreateOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            Taak Toevoegen
           </Button>
         </div>
       </div>
 
-      {/* ═══ SESSION HISTORY ═══ */}
-      {data.sessions && data.sessions.length > 0 && (
-        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-          {data.sessions.slice(-5).map((s, i) => {
-            const dur = s.end ? new Date(s.end).getTime() - new Date(s.start).getTime() : 0;
-            return (
-              <span key={i} className="px-2 py-1 rounded-lg bg-muted/30 border border-border/50">
-                {fmtDate(s.start)} {fmtTime(s.start)} — {s.end ? fmtTime(s.end) : "actief"}
-                {s.end && <span className="ml-1 text-muted-foreground">({fmtDur(dur)})</span>}
-              </span>
-            );
-          })}
-        </div>
+      <TaskToolbar
+        view={view}
+        onViewChange={setView}
+        search={search}
+        onSearchChange={setSearch}
+        filters={filters}
+        onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
+        onClearFilters={() =>
+          setFilters((prev) => ({ ...EMPTY_FILTERS, showClosed: prev.showClosed }))
+        }
+        users={users}
+      />
+
+      {view === "board" && (
+        <TaskBoard
+          tasks={filtered}
+          statuses={boardStatuses}
+          selectedIds={selectedIds}
+          onOpen={setDetailTask}
+          onToggleSelect={toggleSelect}
+          onMove={moveTask}
+          onDelete={deleteOne}
+          onReorder={reorder}
+          onAddToColumn={(status) => {
+            setCreateDefaults({ status });
+            setCreateOpen(true);
+          }}
+        />
       )}
 
-      {/* ═══ KPI ROW ═══ */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Vandaag", value: todayTasks.length + " taken", sub: showTimes ? fmtDur(totalTodayMs) : undefined, color: "from-blue-500/5 to-cyan-500/5 border-blue-500/10" },
-          { label: "Open", value: openCount, sub: "actieve taken", color: "from-amber-500/5 to-orange-500/5 border-amber-500/10" },
-          { label: "Afgerond", value: doneCount, sub: "voltooide taken", color: "from-emerald-500/5 to-teal-500/5 border-emerald-500/10" },
-          { label: "Sessies", value: (data.sessions?.length || 0), sub: activeSession ? "actief" : "inactief", color: "from-violet-500/5 to-purple-500/5 border-violet-500/10" },
-        ].map(s => (
-          <div key={s.label} className={cn("rounded-xl border p-3.5 bg-gradient-to-br", s.color)}>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{s.label}</p>
-            <div className="flex items-baseline gap-1.5 mt-1">
-              <p className="text-xl font-bold">{s.value}</p>
-              {s.sub && <p className="text-xs text-muted-foreground">{s.sub}</p>}
-            </div>
-          </div>
-        ))}
-      </div>
+      {view === "list" && (
+        <TaskList
+          tasks={sorted}
+          selectedIds={selectedIds}
+          sort={sort}
+          onSort={onSort}
+          onToggleSelect={toggleSelect}
+          onToggleAll={toggleAll}
+          onOpen={setDetailTask}
+          onMove={moveTask}
+        />
+      )}
 
-      {/* ═══ ADMIN CONTROLS ═══ */}
-      {isAdmin && (
-        <div className="flex gap-2 flex-wrap items-center">
-          <Button size="sm" onClick={() => setShowAdd(!showAdd)} className="gap-1.5"><Plus className="h-4 w-4"/>Taak</Button>
-          {showAdd && (
-            <div className="flex gap-2 flex-wrap items-center">
-              <Input placeholder="Titel..." value={newTitle} onChange={e => setNewTitle(e.target.value)} onKeyDown={e => e.key==="Enter"&&addTask()} className="h-8 w-44 text-sm"/>
-              <select value={newCat} onChange={e => setNewCat(e.target.value)} className="text-xs h-8 bg-muted/50 border border-border rounded-lg px-2 outline-none">
-                {allCats.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
-              </select>
-              <Input placeholder="Nieuwe categorie" value={newCustomCat} onChange={e => setNewCustomCat(e.target.value)} onKeyDown={e => e.key==="Enter"&&addCustomCat()} className="h-8 w-36 text-xs"/>
-              <Button size="sm" onClick={addTask} className="h-8">Toevoegen</Button>
-            </div>
+      {view === "calendar" && (
+        <TaskCalendar
+          tasks={filtered}
+          onOpen={setDetailTask}
+          onAddOnDate={(dueDate) => {
+            setCreateDefaults({ dueDate });
+            setCreateOpen(true);
+          }}
+        />
+      )}
+
+      {filtered.length === 0 && tasks.length > 0 && (
+        <div className="rounded-xl border border-border py-12 text-center">
+          <p className="text-sm text-muted-foreground">
+            Geen taken voor deze filters.
+          </p>
+          {hasActiveFilters(filters) && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3"
+              onClick={() =>
+                setFilters((prev) => ({ ...EMPTY_FILTERS, showClosed: prev.showClosed }))
+              }
+            >
+              Filters wissen
+            </Button>
           )}
         </div>
       )}
 
-      {/* ═══ BOARD VIEW ═══ */}
-      {viewMode === "board" && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-          {grouped.map((cat) => {
-            const { key, label, tasks } = cat;
-            const c = cat as unknown as { icon?: typeof Sparkles; color?: string; bg?: string; ring?: string };
-            const Icon = c.icon || Sparkles;
-            const color = c.color || "text-gray-400";
-            const bg = c.bg || "bg-gray-500/10";
-            const ring = c.ring || "ring-gray-500/20";
-            const catTimeMs = tasks.reduce((s, t) => s + t.timeLogs.reduce((ss, l) => ss + (l.duration || 0), 0), 0);
-            return (
-              <Card key={key} className="border-border overflow-hidden hover:shadow-md transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <div className={cn("flex h-7 w-7 items-center justify-center rounded-lg ring-1", bg, ring)}>
-                        <Icon className={cn("h-3.5 w-3.5", color)}/>
-                      </div>
-                      {label}
-                    </CardTitle>
-                    <Badge variant="secondary" className="text-[10px]">{tasks.length}</Badge>
-                  </div>
-                  {showTimes && catTimeMs > 0 && (
-                    <p className="text-[10px] text-muted-foreground mt-1.5 ml-9 flex items-center gap-1"><Timer className="h-3 w-3"/>{fmtDur(catTimeMs)}</p>
-                  )}
-                </CardHeader>
-                <Separator />
-                <CardContent className="p-2 space-y-2 max-h-[320px] overflow-y-auto">
-                  {tasks.length === 0 && <p className="text-xs text-muted-foreground text-center py-6">Geen taken</p>}
-                  {(["todo","in_progress","done"] as const).map(status => {
-                    const st = tasks.filter(t => t.status === status);
-                    if (st.length === 0) return null;
-                    return (
-                      <div key={status}>
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground px-2 pt-1 pb-0.5 font-medium">
-                          {status === "todo" ? "Te doen" : status === "in_progress" ? "Bezig" : "Afgerond"}
-                        </p>
-                        {st.map(task => {
-                          const tMs = task.timeLogs.reduce((s, l) => s + (l.duration || 0), 0);
-                          return (
-                            <div key={task.id} className={cn(
-                              "group flex items-center gap-2 rounded-lg px-2 py-1.5 transition-all",
-                              "hover:bg-muted/50",
-                              activeTask === task.id && "bg-emerald-500/5 ring-1 ring-emerald-500/20",
-                              task.status === "done" && "opacity-60"
-                            )}>
-                              <span className="text-xs truncate flex-1">{task.title}</span>
-                              {showTimes && tMs > 0 && <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">{fmtDur(tMs)}</span>}
-                              {isAdmin && (
-                                <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                  {task.status !== "done" && (
-                                    <button onClick={() => updateTask(task.id, { status: "done", completedAt: new Date().toISOString() })} className="p-0.5 hover:bg-emerald-500/10 rounded"><Check className="h-3 w-3 text-emerald-400"/></button>
-                                  )}
-                                  {task.status === "todo" && (
-                                    <button onClick={() => updateTask(task.id, { status: "in_progress" })} className="p-0.5 hover:bg-blue-500/10 rounded"><Play className="h-3 w-3 text-blue-400"/></button>
-                                  )}
-                                  <button onClick={() => toggleTimer(task.id)} className={cn("p-0.5 hover:bg-muted rounded", activeTask===task.id && "text-emerald-400")}>
-                                    {activeTask===task.id ? <Pause className="h-3 w-3"/> : <Clock className="h-3 w-3"/>}
-                                  </button>
-                                  <button onClick={() => deleteTask(task.id)} className="p-0.5 hover:bg-rose-500/10 rounded"><Trash2 className="h-3 w-3 text-muted-foreground hover:text-rose-400"/></button>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+      <BulkActionsBar
+        count={selectedIds.size}
+        users={users}
+        busy={bulkBusy}
+        onApply={bulkApply}
+        onDelete={bulkDelete}
+        onClear={() => setSelectedIds(new Set())}
+      />
 
-      {/* ═══ CALENDAR VIEW ═══ */}
-      {viewMode === "calendar" && (
-        <Card className="border-border">
-          <CardContent className="p-4 space-y-4">
-            <p className="text-sm font-medium flex items-center gap-2"><Calendar className="h-4 w-4"/>Activiteiten</p>
-            {(() => {
-              const logs = data.tasks
-                .filter(t => t.timeLogs.length > 0)
-                .sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                .slice(0, 40);
-              if (logs.length === 0) return <p className="text-sm text-muted-foreground text-center py-8">Nog geen activiteit</p>;
-              return logs.map(task => {
-                const tMs = task.timeLogs.reduce((s, l) => s + (l.duration || 0), 0);
-                const cat = allCats.find(c => c.key === task.category) as unknown as { label?: string; bg?: string; color?: string; icon?: typeof Sparkles } | undefined;
-                const CatIcon = cat?.icon || Sparkles;
-                return (
-                  <div key={task.id} className="flex items-center justify-between border-b border-border/30 pb-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      {cat && <div className={cn("flex h-5 w-5 items-center justify-center rounded", cat.bg || "bg-gray-500/10")}><CatIcon className={cn("h-3 w-3", cat.color || "text-gray-400")}/></div>}
-                      <div>
-                        <p className="font-medium text-xs">{task.title}</p>
-                        <p className="text-[10px] text-muted-foreground">{cat?.label} — {fmtDate(task.createdAt)}</p>
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <Badge variant={task.status==="done"?"default":"secondary"} className="text-[10px]">{task.status==="done"?"Klaar":"Open"}</Badge>
-                      {showTimes && task.timeLogs.length > 0 && (
-                        <div className="text-[10px] text-muted-foreground mt-0.5">
-                          {task.timeLogs.map((l,i) => <span key={i} className="block">{fmtTime(l.start)}{l.end?"→"+fmtTime(l.end)+" ("+fmtDur(l.duration||0)+")":"→ ..."}</span>)}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              });
-            })()}
-          </CardContent>
-        </Card>
-      )}
+      <TaskCreateDialog
+        key={`create-${createOpen}-${createDefaults.status ?? ""}-${createDefaults.dueDate ?? ""}`}
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        users={users}
+        defaults={createDefaults}
+        onCreated={(task) => setTasks((prev) => [task, ...prev])}
+      />
+
+      <TaskDetailDialog
+        key={detailTask?.id ?? "no-task"}
+        task={detailTask}
+        users={users}
+        onClose={() => setDetailTask(null)}
+        onUpdated={applyUpdate}
+        onDeleted={(id) => {
+          setTasks((prev) => prev.filter((t) => t.id !== id));
+          setDetailTask(null);
+        }}
+      />
+
+      <RecurringDialog
+        open={recurringOpen}
+        onOpenChange={setRecurringOpen}
+        users={users}
+      />
     </div>
   );
 }

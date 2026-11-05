@@ -135,7 +135,7 @@ export function ChatBubble() {
   }
 
   async function handleBuildPlugin(description: string) {
-    setMessages((prev) => [...prev, { role: "system", content: "🔧 Plugin code genereren..." }]);
+    setMessages((prev) => [...prev, { role: "system", content: "Plugin code genereren..." }]);
     try {
       const res = await fetch("/api/ai/build-plugin", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -145,12 +145,12 @@ export function ChatBubble() {
       const data = await res.json();
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: "✅ Plugin gegenereerd!\n\n```php\n" + data.code.slice(0, 1500) + (data.code.length > 1500 ? "\n\n... (code ingekort, volledige code in console)" : "") + "\n```\n\nKopieer deze code en voeg toe via WP Admin → Plugins → Nieuwe plugin, of via de Code Snippets plugin." },
+        { role: "assistant", content: "Plugin gegenereerd!\n\n```php\n" + data.code.slice(0, 1500) + (data.code.length > 1500 ? "\n\n... (code ingekort, volledige code in console)" : "") + "\n```\n\nKopieer deze code en voeg toe via WP Admin → Plugins → Nieuwe plugin, of via de Code Snippets plugin." },
       ]);
       console.log("=== GEGENEREERDE PLUGIN CODE ===");
       console.log(data.code);
     } catch {
-      setMessages((prev) => [...prev, { role: "assistant", content: "❌ Fout bij genereren plugin. Probeer opnieuw." }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: "Fout bij genereren plugin. Probeer opnieuw." }]);
     }
   }
 
@@ -163,7 +163,7 @@ export function ChatBubble() {
         ...prev,
         {
           role: "system",
-          content: "🔓 Admin-modus ontgrendeld. Je kan nu commando's geven.",
+          content: "Admin-modus ontgrendeld. Je kan nu commando's geven.",
         },
       ]);
     } else {
@@ -171,7 +171,7 @@ export function ChatBubble() {
         ...prev,
         {
           role: "system",
-          content: "❌ Ongeldig wachtwoord. Probeer opnieuw.",
+          content: "Ongeldig wachtwoord. Probeer opnieuw.",
         },
       ]);
       setPwInput("");

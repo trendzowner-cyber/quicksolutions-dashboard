@@ -24,8 +24,8 @@ export function Pagination({ total, page, perPage = 20 }: PaginationProps) {
   }
 
   return (
-    <div className="flex items-center justify-between pt-4">
-      <p className="text-sm text-muted-foreground">
+    <div className="flex items-center justify-between pt-4 gap-2">
+      <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
         Pagina {page} van {totalPages} ({total} totaal)
       </p>
       <div className="flex items-center gap-1">
@@ -34,12 +34,12 @@ export function Pagination({ total, page, perPage = 20 }: PaginationProps) {
           size="sm"
           disabled={page <= 1}
           onClick={() => goToPage(page - 1)}
+          className="px-2 sm:px-3"
         >
           <ChevronLeft className="h-4 w-4" />
-          Vorige
+          <span className="hidden sm:inline">Vorige</span>
         </Button>
         {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-          // Show pages around current
           let pageNum: number;
           if (totalPages <= 5) {
             pageNum = i + 1;
@@ -55,7 +55,7 @@ export function Pagination({ total, page, perPage = 20 }: PaginationProps) {
               key={pageNum}
               variant={pageNum === page ? "default" : "outline"}
               size="sm"
-              className="h-8 w-8"
+              className="h-8 w-8 text-xs"
               onClick={() => goToPage(pageNum)}
             >
               {pageNum}
@@ -67,8 +67,9 @@ export function Pagination({ total, page, perPage = 20 }: PaginationProps) {
           size="sm"
           disabled={page >= totalPages}
           onClick={() => goToPage(page + 1)}
+          className="px-2 sm:px-3"
         >
-          Volgende
+          <span className="hidden sm:inline">Volgende</span>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>

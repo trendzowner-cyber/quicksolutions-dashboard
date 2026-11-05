@@ -49,7 +49,7 @@ export function StatsCard({
             </p>
             <p className="text-2xl font-bold tracking-tight">{value}</p>
             {description && (
-              <p className="text-xs text-muted-foreground">{description}</p>
+              <p className="text-[13px] text-muted-foreground mt-1">{description}</p>
             )}
           </div>
           <div

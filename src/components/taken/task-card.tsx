@@ -146,7 +146,7 @@ export function TaskCard({
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => onDelete(task.id)}
-                className="gap-2 text-rose-400 focus:text-rose-400"
+                className="gap-2 text-rose-600 dark:text-rose-400 focus:text-rose-400"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 Verwijderen
@@ -182,8 +182,8 @@ export function TaskCard({
             <span
               className={cn(
                 "flex items-center gap-1",
-                overdue && "font-medium text-rose-400",
-                dueToday && "font-medium text-amber-400"
+                overdue && "font-medium text-rose-600 dark:text-rose-400",
+                dueToday && "font-medium text-amber-600 dark:text-amber-400"
               )}
             >
               <Calendar className="h-3 w-3 shrink-0" />

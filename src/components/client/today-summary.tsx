@@ -51,10 +51,10 @@ export function TodaySummary({
   const percent = Math.min(100, Math.round((done / total) * 100));
 
   const tone = allDone
-    ? { bar: "bg-emerald-500", text: "text-emerald-400" }
+    ? { bar: "bg-emerald-500", text: "text-emerald-600 dark:text-emerald-400" }
     : late > 0
-      ? { bar: "bg-rose-500", text: "text-rose-400" }
-      : { bar: "bg-amber-500", text: "text-amber-400" };
+      ? { bar: "bg-rose-500", text: "text-rose-600 dark:text-rose-400" }
+      : { bar: "bg-amber-500", text: "text-amber-600 dark:text-amber-400" };
 
   const status = allDone
     ? "Alles klaar voor vandaag"

@@ -26,9 +26,9 @@ function initials(name: string): string {
 }
 
 const TONE = {
-  done: { bar: "bg-emerald-500", text: "text-emerald-400" },
-  late: { bar: "bg-rose-500", text: "text-rose-400" },
-  pending: { bar: "bg-amber-500", text: "text-amber-400" },
+  done: { bar: "bg-emerald-500", text: "text-emerald-600 dark:text-emerald-400" },
+  late: { bar: "bg-rose-500", text: "text-rose-600 dark:text-rose-400" },
+  pending: { bar: "bg-amber-500", text: "text-amber-600 dark:text-amber-400" },
 } as const;
 
 export function ClientWorkerCard({

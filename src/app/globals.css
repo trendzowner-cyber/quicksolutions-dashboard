@@ -12,6 +12,8 @@
   --font-heading: var(--font-poppins);
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
+  --color-google: var(--google);
+  --color-google-foreground: var(--google-foreground);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -71,6 +73,9 @@
   --ring: oklch(0.708 0 0);
   --brand: oklch(0.66 0.212 34);
   --brand-foreground: oklch(0.985 0 0);
+  /* Google Ads section accent — Google blue, readable on white */
+  --google: oklch(0.55 0.2 260);
+  --google-foreground: oklch(0.985 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -108,6 +113,8 @@
   --ring: oklch(0.556 0 0);
   --brand: oklch(0.74 0.18 38);
   --brand-foreground: oklch(0.15 0 0);
+  --google: oklch(0.68 0.17 250);
+  --google-foreground: oklch(0.15 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);

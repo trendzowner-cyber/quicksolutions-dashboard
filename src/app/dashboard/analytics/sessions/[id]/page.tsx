@@ -42,17 +42,17 @@ const EVENT_LABELS: Record<string, string> = {
 };
 
 const EVENT_COLORS: Record<string, string> = {
-  page_view: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  page_view: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
   page_leave: "bg-gray-500/10 text-gray-400 border-gray-500/20",
   heartbeat: "bg-gray-500/10 text-gray-500 border-gray-500/20",
-  product_view: "bg-violet-500/10 text-violet-400 border-violet-500/20",
-  add_to_cart: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  remove_from_cart: "bg-red-500/10 text-red-400 border-red-500/20",
-  view_cart: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  begin_checkout: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  product_view: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
+  add_to_cart: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+  remove_from_cart: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+  view_cart: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+  begin_checkout: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
   purchase: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
-  search: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
-  user_identified: "bg-pink-500/10 text-pink-400 border-pink-500/20",
+  search: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20",
+  user_identified: "bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20",
 };
 
 export default function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -159,7 +159,7 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
       {purchase && (
         <Card className="border-emerald-500/20 ring-1 ring-emerald-500/20">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2 text-emerald-400">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
               <CreditCard className="h-4 w-4" /> Aankoop
             </CardTitle>
           </CardHeader>

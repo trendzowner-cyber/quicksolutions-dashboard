@@ -95,10 +95,10 @@ const SEVERITY_STYLE: Record<string, { icon: React.ElementType; cls: string; bad
 };
 
 const COMP_STATUS: Record<string, { label: string; cls: string }> = {
-  new: { label: "Nieuw", cls: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
+  new: { label: "Nieuw", cls: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30" },
   steady: { label: "Stabiel", cls: "bg-muted/40 text-muted-foreground border-border" },
-  expanding: { label: "Groeiend", cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
-  gone: { label: "Weg", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
+  expanding: { label: "Groeiend", cls: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30" },
+  gone: { label: "Weg", cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" },
 };
 
 export default function AutopilotPage() {
@@ -204,12 +204,16 @@ export default function AutopilotPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header — compact account/date/freshness context */}
+      {/* Header — Google Ads identity + account/date/freshness context */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Radar className="h-7 w-7 text-brand" />
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-google text-google-foreground shadow-sm">
+            <Radar className="h-6 w-6" />
+          </div>
           <div>
-            <h1 className="text-2xl font-bold">Ads Autopilot</h1>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Google Ads <span className="text-google">Autopilot</span>
+            </h1>
             <p className="text-sm text-muted-foreground">
               Vind verspilling, audit je account, volg concurrenten — jij beslist, de tool voert uit.
             </p>
@@ -242,42 +246,45 @@ export default function AutopilotPage() {
         <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm">{toast}</div>
       )}
       {error && (
-        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
           {error}
         </div>
       )}
 
       <Tabs defaultValue="optimalisatie">
-        <div className="sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 py-2 -mx-1 px-1">
-          <TabsList className="h-10 flex-wrap">
-          <TabsTrigger value="optimalisatie" className="gap-2 text-sm">
-            <Radar className="h-4 w-4" /> Optimalisatie
-          </TabsTrigger>
-          <TabsTrigger value="zoektermen" className="gap-2 text-sm">
-            <SearchIcon className="h-4 w-4" /> Zoektermen
-          </TabsTrigger>
-          <TabsTrigger value="keywords" className="gap-2 text-sm">
-            <KeyRound className="h-4 w-4" /> Keywords
-          </TabsTrigger>
-          <TabsTrigger value="campagnes" className="gap-2 text-sm">
-            <Layers className="h-4 w-4" /> Campagnes
-          </TabsTrigger>
-          <TabsTrigger value="negatieven" className="gap-2 text-sm">
-            <Ban className="h-4 w-4" /> Negatieven
-          </TabsTrigger>
-          <TabsTrigger value="advertenties" className="gap-2 text-sm">
-            <Megaphone className="h-4 w-4" /> Advertenties
-          </TabsTrigger>
-          <TabsTrigger value="conversies" className="gap-2 text-sm">
-            <Target className="h-4 w-4" /> Conversies
-          </TabsTrigger>
-          <TabsTrigger value="audit" className="gap-2 text-sm">
-            <ClipboardCheck className="h-4 w-4" /> Account Audit
-          </TabsTrigger>
-          <TabsTrigger value="concurrentie" className="gap-2 text-sm">
-            <Swords className="h-4 w-4" /> Concurrentie
-          </TabsTrigger>
-          </TabsList>
+        {/* Sticky tab bar — single scrollable row so 9 tabs never wrap/overlap */}
+        <div className="sticky top-0 z-30 -mx-1 border-b border-border bg-background/95 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          <div className="overflow-x-auto">
+            <TabsList className="w-max flex-nowrap">
+            <TabsTrigger value="optimalisatie" className="flex-none gap-2 text-sm">
+              <Radar className="h-4 w-4" /> Optimalisatie
+            </TabsTrigger>
+            <TabsTrigger value="zoektermen" className="flex-none gap-2 text-sm">
+              <SearchIcon className="h-4 w-4" /> Zoektermen
+            </TabsTrigger>
+            <TabsTrigger value="keywords" className="flex-none gap-2 text-sm">
+              <KeyRound className="h-4 w-4" /> Keywords
+            </TabsTrigger>
+            <TabsTrigger value="campagnes" className="flex-none gap-2 text-sm">
+              <Layers className="h-4 w-4" /> Campagnes
+            </TabsTrigger>
+            <TabsTrigger value="negatieven" className="flex-none gap-2 text-sm">
+              <Ban className="h-4 w-4" /> Negatieven
+            </TabsTrigger>
+            <TabsTrigger value="advertenties" className="flex-none gap-2 text-sm">
+              <Megaphone className="h-4 w-4" /> Advertenties
+            </TabsTrigger>
+            <TabsTrigger value="conversies" className="flex-none gap-2 text-sm">
+              <Target className="h-4 w-4" /> Conversies
+            </TabsTrigger>
+            <TabsTrigger value="audit" className="flex-none gap-2 text-sm">
+              <ClipboardCheck className="h-4 w-4" /> Account Audit
+            </TabsTrigger>
+            <TabsTrigger value="concurrentie" className="flex-none gap-2 text-sm">
+              <Swords className="h-4 w-4" /> Concurrentie
+            </TabsTrigger>
+            </TabsList>
+          </div>
         </div>
 
         {/* ═══ TAB 1: optimization (waste finder, budgets, keywords) ═══ */}
@@ -288,7 +295,7 @@ export default function AutopilotPage() {
               <CardContent className="pt-5">
                 {loading ? <Skeleton className="h-10 w-24" /> : (
                   <>
-                    <p className="text-2xl font-bold text-red-400">{eur(summary?.wasteCostMicros ?? 0)}</p>
+                    <p className="text-2xl font-bold text-red-600 dark:text-red-400">{eur(summary?.wasteCostMicros ?? 0)}</p>
                     <p className="text-xs text-muted-foreground mt-1">Verspilde spend (0 conversies)</p>
                   </>
                 )}
@@ -308,7 +315,7 @@ export default function AutopilotPage() {
               <CardContent className="pt-5">
                 {loading ? <Skeleton className="h-10 w-24" /> : (
                   <>
-                    <p className="text-2xl font-bold text-emerald-400">{summary?.winners ?? 0}</p>
+                    <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{summary?.winners ?? 0}</p>
                     <p className="text-xs text-muted-foreground mt-1">Winnende termen (ROAS ≥ 3)</p>
                   </>
                 )}
@@ -318,7 +325,7 @@ export default function AutopilotPage() {
               <CardContent className="pt-5">
                 {loading ? <Skeleton className="h-10 w-24" /> : (
                   <>
-                    <p className="text-2xl font-bold text-amber-400">{keywords?.length ?? 0}</p>
+                    <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{keywords?.length ?? 0}</p>
                     <p className="text-xs text-muted-foreground mt-1">Keywords om te pauzeren</p>
                   </>
                 )}
@@ -368,7 +375,7 @@ export default function AutopilotPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Trash2 className="h-5 w-5 text-red-400" /> Verspillingsradar — zoektermen
+                <Trash2 className="h-5 w-5 text-red-600 dark:text-red-400" /> Verspillingsradar — zoektermen
               </CardTitle>
               <Button
                 size="sm"
@@ -479,9 +486,9 @@ export default function AutopilotPage() {
                       <div className="flex items-center justify-between gap-2">
                         <p className="font-medium truncate">{b.campaignName}</p>
                         {b.action === "increase" ? (
-                          <TrendingUp className="h-4 w-4 text-emerald-400 shrink-0" />
+                          <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                         ) : b.action === "decrease" ? (
-                          <TrendingDown className="h-4 w-4 text-amber-400 shrink-0" />
+                          <TrendingDown className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
                         ) : (
                           <Minus className="h-4 w-4 text-muted-foreground shrink-0" />
                         )}
@@ -533,7 +540,7 @@ export default function AutopilotPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <PauseCircle className="h-5 w-5 text-amber-400" /> Keywords om te pauzeren
+                <PauseCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" /> Keywords om te pauzeren
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -541,7 +548,7 @@ export default function AutopilotPage() {
                 <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
               ) : !keywords?.length ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">
-                  <CheckCircle2 className="inline h-4 w-4 text-emerald-400 mr-1" />
+                  <CheckCircle2 className="inline h-4 w-4 text-emerald-600 dark:text-emerald-400 mr-1" />
                   Geen verlieslatende keywords gevonden.
                 </p>
               ) : (
@@ -675,7 +682,7 @@ export default function AutopilotPage() {
 
       {/* Monitor note */}
       <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-        <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-amber-400" />
+        <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
         <p>
           De anomaliemonitor draait dagelijks via cron en stuurt een Telegram-melding bij
           spend-pieken, spend-dips, weggevallen conversies of CTR-instorting. De autopilot past
@@ -746,15 +753,15 @@ function AuditSection({ showToast }: { showToast: (m: string) => void }) {
       {summary && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card><CardContent className="pt-5">
-            <p className="text-2xl font-bold text-red-400">{summary.critical}</p>
+            <p className="text-2xl font-bold text-red-600 dark:text-red-400">{summary.critical}</p>
             <p className="text-xs text-muted-foreground mt-1">Kritieke bevindingen</p>
           </CardContent></Card>
           <Card><CardContent className="pt-5">
-            <p className="text-2xl font-bold text-amber-400">{summary.warning}</p>
+            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{summary.warning}</p>
             <p className="text-xs text-muted-foreground mt-1">Aandachtspunten</p>
           </CardContent></Card>
           <Card><CardContent className="pt-5">
-            <p className="text-2xl font-bold text-emerald-400">{summary.ok}</p>
+            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{summary.ok}</p>
             <p className="text-xs text-muted-foreground mt-1">In orde</p>
           </CardContent></Card>
           <Card><CardContent className="pt-5">
@@ -820,7 +827,6 @@ function AuditSection({ showToast }: { showToast: (m: string) => void }) {
   );
 }
 
-// ─── Competitors tab ───
 // ─── Competitors tab ───
 
 function CompetitorSection({ showToast }: { showToast: (m: string) => void }) {

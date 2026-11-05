@@ -158,7 +158,7 @@ export function AICreatePagina() {
               </div>
               <div className="rounded-xl border overflow-hidden">
                 <div className="bg-emerald-500/10 px-3 py-1.5">
-                  <p className="text-xs text-emerald-400 font-medium">
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
                     Preview
                   </p>
                 </div>

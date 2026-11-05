@@ -220,7 +220,7 @@ export function ChatBubble() {
                 {unlocked ? (
                   <Badge
                     variant="default"
-                    className="gap-1 text-xs bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                    className="gap-1 text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                   >
                     <Unlock className="h-3 w-3" />
                     Admin

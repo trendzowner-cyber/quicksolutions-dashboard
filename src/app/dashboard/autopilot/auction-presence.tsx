@@ -61,10 +61,10 @@ interface DomainDrilldown {
 }
 
 const STATUS_STYLE: Record<string, { label: string; cls: string }> = {
-  new: { label: "Nieuw", cls: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
-  expanding: { label: "Actiever", cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
+  new: { label: "Nieuw", cls: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30" },
+  expanding: { label: "Actiever", cls: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30" },
   steady: { label: "Stabiel", cls: "bg-muted/40 text-muted-foreground border-border" },
-  cooling: { label: "Afbouwend", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
+  cooling: { label: "Afbouwend", cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" },
 };
 
 const TONE_STYLE: Record<string, string> = {
@@ -206,11 +206,11 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
           {changes.slice(0, 3).map((c, i) => (
             <div key={i} className={`flex items-start gap-3 rounded-lg border px-4 py-3 ${TONE_STYLE[c.tone]}`}>
               {c.tone === "warning" ? (
-                <TrendingDown className="h-4 w-4 mt-0.5 shrink-0 text-amber-400" />
+                <TrendingDown className="h-4 w-4 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
               ) : c.tone === "good" ? (
-                <TrendingUp className="h-4 w-4 mt-0.5 shrink-0 text-emerald-400" />
+                <TrendingUp className="h-4 w-4 mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
               ) : (
-                <Info className="h-4 w-4 mt-0.5 shrink-0 text-blue-400" />
+                <Info className="h-4 w-4 mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" />
               )}
               <div>
                 <p className="text-sm font-medium">{c.title}</p>

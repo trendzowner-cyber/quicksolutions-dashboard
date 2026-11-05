@@ -438,7 +438,7 @@ export function RecurringDialog({
                         {!row.active && (
                           <Badge
                             variant="outline"
-                            className="border-amber-500/20 bg-amber-500/10 text-[10px] text-amber-400"
+                            className="border-amber-500/20 bg-amber-500/10 text-[10px] text-amber-600 dark:text-amber-400"
                           >
                             gepauzeerd
                           </Badge>
@@ -476,7 +476,7 @@ export function RecurringDialog({
                         variant="ghost"
                         size="icon-sm"
                         title="Verwijderen"
-                        className="text-muted-foreground hover:text-rose-400"
+                        className="text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400"
                         onClick={() => remove(row)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />

@@ -136,7 +136,7 @@ function InlineEdit({
         className="h-6 w-6 shrink-0"
         onClick={handleSave}
       >
-        <Check className="h-3 w-3 text-emerald-400" />
+        <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
       </Button>
       <Button
         variant="ghost"

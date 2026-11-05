@@ -42,16 +42,16 @@ function initials(name: string): string {
 }
 
 const STATE_STYLE = {
-  done: { icon: CheckCircle2, className: "text-emerald-400" },
-  late: { icon: Clock, className: "text-amber-400" },
-  missed: { icon: AlertTriangle, className: "text-rose-400" },
+  done: { icon: CheckCircle2, className: "text-emerald-600 dark:text-emerald-400" },
+  late: { icon: Clock, className: "text-amber-600 dark:text-amber-400" },
+  missed: { icon: AlertTriangle, className: "text-rose-600 dark:text-rose-400" },
   pending: { icon: Clock, className: "text-muted-foreground" },
 } as const;
 
 const DAY_TONE = {
-  done: "bg-emerald-500/15 text-emerald-400",
-  partial: "bg-amber-500/15 text-amber-400",
-  missed: "bg-rose-500/15 text-rose-400",
+  done: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+  partial: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+  missed: "bg-rose-500/15 text-rose-600 dark:text-rose-400",
   future: "bg-muted text-muted-foreground",
   none: "bg-muted text-muted-foreground",
 } as const;
@@ -203,7 +203,7 @@ export function WorkerDetailsSheet({
                               className={cn(
                                 "mt-0.5 text-sm",
                                 task.overdue
-                                  ? "text-rose-400"
+                                  ? "text-rose-600 dark:text-rose-400"
                                   : "text-muted-foreground"
                               )}
                             >

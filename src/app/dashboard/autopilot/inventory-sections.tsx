@@ -107,15 +107,15 @@ export function CampaignsSection({ dateRange }: { dateRange: string }) {
             <>
               <div className="grid grid-cols-3 gap-3 mb-4">
                 <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
-                  <p className="text-xl font-bold text-emerald-400">{pct(latest?.share ?? null)}</p>
+                  <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{pct(latest?.share ?? null)}</p>
                   <p className="text-xs text-muted-foreground">Impression share (gewonnen)</p>
                 </div>
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
-                  <p className="text-xl font-bold text-amber-400">{pct(latest?.lostRank ?? null)}</p>
+                  <p className="text-xl font-bold text-amber-600 dark:text-amber-400">{pct(latest?.lostRank ?? null)}</p>
                   <p className="text-xs text-muted-foreground">Verloren door rank (advertentierang)</p>
                 </div>
                 <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-3">
-                  <p className="text-xl font-bold text-red-400">{pct(latest?.lostBudget ?? null)}</p>
+                  <p className="text-xl font-bold text-red-600 dark:text-red-400">{pct(latest?.lostBudget ?? null)}</p>
                   <p className="text-xs text-muted-foreground">Verloren door budget</p>
                 </div>
               </div>
@@ -167,7 +167,7 @@ export function CampaignsSection({ dateRange }: { dateRange: string }) {
         </CardHeader>
         <CardContent>
           {error && (
-            <p className="text-sm text-red-400 py-2">{error}</p>
+            <p className="text-sm text-red-600 dark:text-red-400 py-2">{error}</p>
           )}
           {!campaigns ? (
             <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
@@ -200,7 +200,7 @@ export function CampaignsSection({ dateRange }: { dateRange: string }) {
                       </td>
                       <td className="py-2 pr-3">
                         <Badge className={c.status === "ENABLED"
-                          ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                          ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                           : "bg-muted/40 text-muted-foreground border-border"}>
                           {c.status === "ENABLED" ? "Actief" : c.status === "PAUSED" ? "Gepauzeerd" : c.status}
                         </Badge>
@@ -341,7 +341,7 @@ export function KeywordsSection({
                     <td className="py-2 pr-3 text-xs text-muted-foreground">{k.matchType}</td>
                     <td className="py-2 pr-3">
                       <Badge className={k.status === "ENABLED"
-                        ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                        ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                         : "bg-muted/40 text-muted-foreground border-border"}>
                         {k.status === "ENABLED" ? "Actief" : k.status === "PAUSED" ? "Gepauzeerd" : k.status}
                       </Badge>
@@ -365,7 +365,7 @@ export function KeywordsSection({
                           onClick={() => onPause(k)}
                           title={k.flag === "pause_candidate" ? k.reason : "Pauzeer dit keyword"}
                         >
-                          <PauseCircle className={`h-3.5 w-3.5 mr-1 ${k.flag === "pause_candidate" ? "text-amber-400" : ""}`} />
+                          <PauseCircle className={`h-3.5 w-3.5 mr-1 ${k.flag === "pause_candidate" ? "text-amber-600 dark:text-amber-400" : ""}`} />
                           {busy === `kw:${k.resourceName}` ? "…" : "Pauzeer"}
                         </Button>
                       )}
@@ -460,7 +460,7 @@ export function NegativesSection({
           {sharedCount > 0 && `${sharedCount} via gedeelde lijsten (gelden voor alle gekoppelde campagnes). `}
           &quot;Deblokkeer&quot; verwijdert het negatief — de zoekterm mag dan weer je advertenties tonen.
         </p>
-        {error && <p className="text-sm text-red-400 py-2">{error}</p>}
+        {error && <p className="text-sm text-red-600 dark:text-red-400 py-2">{error}</p>}
         {!negatives ? (
           <div className="space-y-2">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
         ) : !rows.length ? (
@@ -486,7 +486,7 @@ export function NegativesSection({
                     </td>
                     <td className="py-2 pr-3">
                       <Badge className={n.scope === "shared"
-                        ? "bg-purple-500/15 text-purple-400 border-purple-500/30"
+                        ? "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30"
                         : "bg-muted/40 text-muted-foreground border-border"}>
                         {n.scope === "shared" ? "Gedeelde lijst" : "Campagne"}
                       </Badge>

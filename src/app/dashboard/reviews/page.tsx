@@ -200,10 +200,10 @@ function pageNumbers(current: number, total: number): (number | "…")[] {
 }
 
 function starClasses(rating: number): string {
-  if (rating >= 5) return "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
-  if (rating === 4) return "bg-sky-500/15 text-sky-400 border-sky-500/30";
+  if (rating >= 5) return "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30";
+  if (rating === 4) return "bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/30";
   if (rating === 3) return "bg-slate-500/15 text-slate-300 border-slate-500/30";
-  return "bg-rose-500/15 text-rose-400 border-rose-500/30";
+  return "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30";
 }
 
 function StarChip({ rating }: { rating: number }) {
@@ -353,10 +353,10 @@ function MemberCard({
   }
 
   const badge = needsFollow(r)
-    ? { label: "Opvolgen", cls: "bg-rose-500/15 text-rose-400 border-rose-500/30" }
+    ? { label: "Opvolgen", cls: "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30" }
     : needsReport(r)
-      ? { label: "Rapporteren", cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" }
-      : { label: "Te beantwoorden", cls: "bg-sky-500/15 text-sky-400 border-sky-500/30" };
+      ? { label: "Rapporteren", cls: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30" }
+      : { label: "Te beantwoorden", cls: "bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/30" };
 
   return (
     <Card
@@ -389,7 +389,7 @@ function MemberCard({
             {r.comment.length > 200 && (
               <button
                 onClick={() => setShowMore((v) => !v)}
-                className="mt-1 text-xs font-medium text-sky-400 hover:underline"
+                className="mt-1 text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
               >
                 {showMore ? "Minder lezen" : "Meer lezen"}
               </button>
@@ -441,7 +441,7 @@ function MemberCard({
             <Button
               size="sm"
               variant="outline"
-              className="gap-1.5 text-xs border-rose-500/40 text-rose-400 hover:bg-rose-500/10"
+              className="gap-1.5 text-xs border-rose-500/40 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10"
               onClick={() => setOpen(open === "follow" ? null : "follow")}
             >
               <CalendarCheck className="h-3.5 w-3.5" />
@@ -452,7 +452,7 @@ function MemberCard({
 
         {!done && needsReport(r) && (
           <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <Info className="h-3.5 w-3.5 shrink-0 text-amber-400" />
+            <Info className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
             Open op Google meldt deze review automatisch — rapporteer hem daar en wij volgen het
             resultaat.
           </p>
@@ -478,7 +478,7 @@ function MemberCard({
                 onClick={aiDraft}
                 disabled={busy === "ai" || busy === "reply"}
               >
-                <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+                <Sparkles className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                 {busy === "ai" ? "Schrijft…" : "AI-suggestie"}
               </Button>
               <Button size="sm" className="gap-1.5" onClick={sendReply} disabled={busy === "reply" || !replyText.trim()}>
@@ -492,7 +492,7 @@ function MemberCard({
         {/* Follow-up panel — the 3-day check after a report */}
         {open === "follow" && (
           <div className="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/5 p-3 space-y-2 animate-fade-in">
-            <p className="text-xs font-semibold text-rose-400">
+            <p className="text-xs font-semibold text-rose-600 dark:text-rose-400">
               Tijd om te kijken: staat de review nog op Google?
             </p>
             <div className="flex flex-wrap gap-2">
@@ -509,7 +509,7 @@ function MemberCard({
               <Button
                 size="sm"
                 variant="outline"
-                className="gap-1.5 text-xs border-emerald-500/40 text-emerald-400"
+                className="gap-1.5 text-xs border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
                 onClick={() => followUp(false)}
                 disabled={busy === "follow"}
               >
@@ -522,7 +522,7 @@ function MemberCard({
 
         {r.replyText && done && (
           <div className="mt-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3">
-            <p className="text-[11px] font-semibold text-emerald-400 mb-1">Jouw antwoord</p>
+            <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 mb-1">Jouw antwoord</p>
             <p className="text-xs text-muted-foreground whitespace-pre-line">{r.replyText}</p>
           </div>
         )}
@@ -647,7 +647,7 @@ function MemberView({ payload, onRefresh }: { payload: GroupsPayload; onRefresh:
       <div className="space-y-5">
       <div>
         <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-bold tracking-tight">
-          <Hand className="h-5 w-5 text-sky-400 shrink-0" />
+          <Hand className="h-5 w-5 text-sky-600 dark:text-sky-400 shrink-0" />
           Hallo {firstName}, dit is wat jij vandaag moet doen
         </h1>
         <p className="text-sm text-muted-foreground mt-1 capitalize">
@@ -664,10 +664,10 @@ function MemberView({ payload, onRefresh }: { payload: GroupsPayload; onRefresh:
             section === "melden" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
           }`}
         >
-          <Flag className="h-4 w-4 text-amber-400" />
+          <Flag className="h-4 w-4 text-amber-600 dark:text-amber-400" />
           Melden
           {todo.length > 0 && (
-            <span className="rounded-full bg-amber-500/15 px-1.5 text-[11px] font-bold text-amber-400 tabular-nums">
+            <span className="rounded-full bg-amber-500/15 px-1.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 tabular-nums">
               {todo.length}
             </span>
           )}
@@ -678,10 +678,10 @@ function MemberView({ payload, onRefresh }: { payload: GroupsPayload; onRefresh:
             section === "antwoorden" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
           }`}
         >
-          <MessageSquare className="h-4 w-4 text-emerald-400" />
+          <MessageSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
           Antwoorden
           {positive.length > 0 && (
-            <span className="rounded-full bg-emerald-500/15 px-1.5 text-[11px] font-bold text-emerald-400 tabular-nums">
+            <span className="rounded-full bg-emerald-500/15 px-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
               {positive.length}
             </span>
           )}
@@ -711,7 +711,7 @@ function MemberView({ payload, onRefresh }: { payload: GroupsPayload; onRefresh:
         >
           Mijn taken
           {todo.length > 0 && (
-            <span className="rounded-full bg-sky-500/15 px-1.5 text-[11px] font-bold text-sky-400 tabular-nums">
+            <span className="rounded-full bg-sky-500/15 px-1.5 text-[11px] font-bold text-sky-600 dark:text-sky-400 tabular-nums">
               {todo.length}
             </span>
           )}
@@ -726,7 +726,7 @@ function MemberView({ payload, onRefresh }: { payload: GroupsPayload; onRefresh:
         >
           Gerapporteerd
           {done.length > 0 && (
-            <span className="rounded-full bg-emerald-500/15 px-1.5 text-[11px] font-bold text-emerald-400 tabular-nums">
+            <span className="rounded-full bg-emerald-500/15 px-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
               {done.length}
             </span>
           )}
@@ -740,7 +740,7 @@ function MemberView({ payload, onRefresh }: { payload: GroupsPayload; onRefresh:
         <CardContent className="p-5 sm:p-6 text-center">
           {todo.length > 0 ? (
             <>
-              <p className="text-4xl sm:text-5xl font-bold text-sky-400">{todo.length}</p>
+              <p className="text-4xl sm:text-5xl font-bold text-sky-600 dark:text-sky-400">{todo.length}</p>
               <p className="mt-2 text-sm text-muted-foreground">
                 {todo.length === 1 ? "review om te behandelen" : "reviews om te behandelen"} — doe
                 ze rustig één voor één
@@ -748,7 +748,7 @@ function MemberView({ payload, onRefresh }: { payload: GroupsPayload; onRefresh:
             </>
           ) : (
             <>
-              <PartyPopper className="mx-auto h-10 w-10 text-emerald-400" />
+              <PartyPopper className="mx-auto h-10 w-10 text-emerald-600 dark:text-emerald-400" />
               <p className="mt-2 text-sm text-muted-foreground">
                 Alles gedaan — je bent klaar voor vandaag!
               </p>
@@ -760,8 +760,8 @@ function MemberView({ payload, onRefresh }: { payload: GroupsPayload; onRefresh:
       {/* My reports this week */}
       {done.length > 0 && (
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
-          <span className="font-semibold text-emerald-400">{done.length}</span> gerapporteerd
+          <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+          <span className="font-semibold text-emerald-600 dark:text-emerald-400">{done.length}</span> gerapporteerd
           door jou deze week
         </p>
       )}
@@ -844,7 +844,7 @@ function MemberView({ payload, onRefresh }: { payload: GroupsPayload; onRefresh:
         <>
           <div className="flex items-center gap-3 pt-1">
             <div className="h-px flex-1 bg-border" />
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
               <PartyPopper className="h-3.5 w-3.5" />
               Gerapporteerd door jou ({done.length})
             </span>
@@ -856,7 +856,7 @@ function MemberView({ payload, onRefresh }: { payload: GroupsPayload; onRefresh:
                 key={t.assignmentId}
                 className="flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs"
               >
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <span className="max-w-[140px] truncate">{t.review.reviewerName}</span>
               </div>
             ))}
@@ -928,7 +928,7 @@ function MemberView({ payload, onRefresh }: { payload: GroupsPayload; onRefresh:
         <section className="w-full shrink-0 snap-center pl-5 space-y-4">
           <div>
             <h2 className="flex items-center gap-2 text-xl sm:text-2xl font-bold tracking-tight">
-              <MessageSquare className="h-5 w-5 text-emerald-400 shrink-0" />
+              <MessageSquare className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
               Positieve reviews
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
@@ -976,7 +976,7 @@ function LeadView({ payload, onRefresh }: { payload: GroupsPayload; onRefresh: (
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="flex items-center gap-2 text-lg sm:text-xl font-bold tracking-tight">
-            <Users className="h-5 w-5 text-sky-400 shrink-0" />
+            <Users className="h-5 w-5 text-sky-600 dark:text-sky-400 shrink-0" />
             {group?.name ?? "Team"} — Overzicht
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
@@ -1179,22 +1179,22 @@ function AdminRow({ review, onUpdate }: { review: Review; onUpdate: (r: Review) 
           </div>
           <div className="flex max-w-[45%] shrink-0 items-center gap-1 flex-wrap justify-end">
             {suspicious && (
-              <Badge className="border bg-amber-500/15 text-amber-400 border-amber-500/30 text-[10px]">
+              <Badge className="border bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 text-[10px]">
                 Verdacht
               </Badge>
             )}
             {r.reported && (
-              <Badge className="border bg-rose-500/15 text-rose-400 border-rose-500/30 text-[10px]">
+              <Badge className="border bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30 text-[10px]">
                 Gerapporteerd
               </Badge>
             )}
             {r.removalStage && (
-              <Badge className="border bg-violet-500/15 text-violet-400 border-violet-500/30 text-[10px]">
+              <Badge className="border bg-violet-500/15 text-violet-600 dark:text-violet-400 border-violet-500/30 text-[10px]">
                 {STAGE_NL[r.removalStage] ?? "Verwijderaar"}
               </Badge>
             )}
             {r.editedAt && (
-              <Badge className="border bg-amber-500/15 text-amber-400 border-amber-500/30 text-[10px]">
+              <Badge className="border bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 text-[10px]">
                 Bewerkt ×{Math.max(1, r.editCount)}
               </Badge>
             )}
@@ -1221,7 +1221,7 @@ function AdminRow({ review, onUpdate }: { review: Review; onUpdate: (r: Review) 
 
           {/* ── Antwoord ── */}
           <div className="rounded-xl border border-border p-3 space-y-2">
-            <p className="flex items-center gap-1.5 text-xs font-semibold text-sky-400">
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-sky-600 dark:text-sky-400">
               <Pencil className="h-3.5 w-3.5" />
               Antwoord
             </p>
@@ -1229,7 +1229,7 @@ function AdminRow({ review, onUpdate }: { review: Review; onUpdate: (r: Review) 
               <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 space-y-2">
                 <p className="text-xs text-muted-foreground whitespace-pre-line">{r.replyText}</p>
                 {r.replyPending && (
-                  <p className="flex items-center gap-1.5 text-[11px] text-amber-400">
+                  <p className="flex items-center gap-1.5 text-[11px] text-amber-600 dark:text-amber-400">
                     <RefreshCw className="h-3 w-3 shrink-0" />
                     Nog niet live op Google (quota) — wordt automatisch geplaatst bij de volgende sync.
                   </p>
@@ -1251,7 +1251,7 @@ function AdminRow({ review, onUpdate }: { review: Review; onUpdate: (r: Review) 
                     onClick={aiDraft}
                     disabled={busy === "ai" || busy === "reply"}
                   >
-                    <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+                    <Sparkles className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                     {busy === "ai" ? "Schrijft…" : "AI-suggestie"}
                   </Button>
                   <Button size="sm" className="gap-1.5" onClick={sendReply} disabled={busy === "reply" || !replyText.trim()}>
@@ -1265,7 +1265,7 @@ function AdminRow({ review, onUpdate }: { review: Review; onUpdate: (r: Review) 
 
           {/* ── Rapportage ── */}
           <div className="rounded-xl border border-border p-3 space-y-2">
-            <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-400">
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
               <Flag className="h-3.5 w-3.5" />
               Rapportage bij Google
             </p>
@@ -1277,7 +1277,7 @@ function AdminRow({ review, onUpdate }: { review: Review; onUpdate: (r: Review) 
                 <Button
                   size="sm"
                   variant="outline"
-                  className="gap-1.5 border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
+                  className="gap-1.5 border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
                   onClick={() => patch({ reported: true }, "Gerapporteerd — opvolging gepland")}
                   disabled={busy === "patch"}
                 >
@@ -1288,7 +1288,7 @@ function AdminRow({ review, onUpdate }: { review: Review; onUpdate: (r: Review) 
             ) : (
               <>
                 <div className="flex flex-wrap items-center gap-2 text-xs">
-                  <Badge className="border bg-rose-500/15 text-rose-400 border-rose-500/30">
+                  <Badge className="border bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30">
                     {r.reportOutcome ? OUTCOME_NL[r.reportOutcome] ?? r.reportOutcome : "In afwachting"}
                   </Badge>
                   {r.reportCount > 1 && (
@@ -1304,7 +1304,7 @@ function AdminRow({ review, onUpdate }: { review: Review; onUpdate: (r: Review) 
                   <Button
                     size="sm"
                     variant="outline"
-                    className="text-xs border-emerald-500/40 text-emerald-400"
+                    className="text-xs border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
                     onClick={() => patch({ reportOutcome: "removed" }, "Uitkomst: verwijderd")}
                     disabled={busy === "patch"}
                   >
@@ -1368,7 +1368,7 @@ function AdminRow({ review, onUpdate }: { review: Review; onUpdate: (r: Review) 
 
           {/* ── Verwijderaar ── */}
           <div className="rounded-xl border border-violet-500/25 bg-violet-500/5 p-3 space-y-2">
-            <p className="flex items-center gap-1.5 text-xs font-semibold text-violet-400">
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-violet-600 dark:text-violet-400">
               <Banknote className="h-3.5 w-3.5" />
               Verwijderaar (betaalde service)
             </p>
@@ -1376,7 +1376,7 @@ function AdminRow({ review, onUpdate }: { review: Review; onUpdate: (r: Review) 
               <Button
                 size="sm"
                 variant="outline"
-                className="text-xs border-violet-500/40 text-violet-400 hover:bg-violet-500/10"
+                className="text-xs border-violet-500/40 text-violet-600 dark:text-violet-400 hover:bg-violet-500/10"
                 onClick={() => removal("ready")}
                 disabled={busy === "removal"}
               >
@@ -1407,12 +1407,12 @@ function AdminRow({ review, onUpdate }: { review: Review; onUpdate: (r: Review) 
               <p className="text-xs text-muted-foreground">
                 Verzonden {r.removalPrice != null ? `voor €${r.removalPrice}` : ""} — deadline{" "}
                 {r.removalDueAt ? new Date(r.removalDueAt).toLocaleDateString("nl-BE") : "—"}
-                {overdue && <span className="ml-1 font-semibold text-rose-400">TE LAAT!</span>}
+                {overdue && <span className="ml-1 font-semibold text-rose-600 dark:text-rose-400">TE LAAT!</span>}
               </p>
             )}
             {r.removalStage === "removed" && (
               <div className="flex flex-wrap items-center gap-2">
-                <p className="flex items-center gap-1 text-xs text-emerald-400">
+                <p className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   Verwijderd {r.removalPrice != null ? `— te betalen €${r.removalPrice}` : ""}
                 </p>
@@ -1701,11 +1701,11 @@ function AdminView({
   }
 
   const statCards = [
-    { label: "actief", value: active.length, cls: "text-sky-400" },
-    { label: "te beantwoorden", value: unanswered.length, cls: "text-sky-400" },
-    { label: "verdacht", value: suspiciousList.length, cls: "text-amber-400" },
-    { label: "gerapporteerd", value: reportedList.length, cls: "text-rose-400" },
-    { label: "verwijderaar", value: removalList.length, cls: "text-violet-400" },
+    { label: "actief", value: active.length, cls: "text-sky-600 dark:text-sky-400" },
+    { label: "te beantwoorden", value: unanswered.length, cls: "text-sky-600 dark:text-sky-400" },
+    { label: "verdacht", value: suspiciousList.length, cls: "text-amber-600 dark:text-amber-400" },
+    { label: "gerapporteerd", value: reportedList.length, cls: "text-rose-600 dark:text-rose-400" },
+    { label: "verwijderaar", value: removalList.length, cls: "text-violet-600 dark:text-violet-400" },
     { label: "niet toegewezen", value: payload.unassigned ?? 0, cls: "text-muted-foreground" },
   ];
 
@@ -1715,28 +1715,28 @@ function AdminView({
       label: "wachten op een antwoord",
       count: unanswered.length,
       filter: "antwoorden" as AdminFilter,
-      cls: "text-sky-400",
+      cls: "text-sky-600 dark:text-sky-400",
     },
     {
       Icon: Flag,
       label: "verdacht, te rapporteren",
       count: suspiciousList.filter((r) => !r.reported).length,
       filter: "verdacht" as AdminFilter,
-      cls: "text-amber-400",
+      cls: "text-amber-600 dark:text-amber-400",
     },
     {
       Icon: CalendarCheck,
       label: "opvolgen op Google",
       count: dueFollowUps.length,
       filter: "gerapporteerd" as AdminFilter,
-      cls: "text-rose-400",
+      cls: "text-rose-600 dark:text-rose-400",
     },
     {
       Icon: Banknote,
       label: "bij de verwijderaar",
       count: removalList.length,
       filter: "verwijderaar" as AdminFilter,
-      cls: "text-violet-400",
+      cls: "text-violet-600 dark:text-violet-400",
     },
   ];
 
@@ -1754,7 +1754,7 @@ function AdminView({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-bold tracking-tight">
-            <Hand className="h-5 w-5 text-sky-400 shrink-0" />
+            <Hand className="h-5 w-5 text-sky-600 dark:text-sky-400 shrink-0" />
             Hallo {firstName}, dit is jouw dag
           </h1>
           <p className="text-sm text-muted-foreground mt-1 capitalize">
@@ -1817,7 +1817,7 @@ function AdminView({
             view === "beheer" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
           }`}
         >
-          <Star className="h-4 w-4 text-amber-400" />
+          <Star className="h-4 w-4 text-amber-600 dark:text-amber-400" />
           Alle reviews
         </button>
         <button
@@ -1826,10 +1826,10 @@ function AdminView({
             view === "positief" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
           }`}
         >
-          <MessageSquare className="h-4 w-4 text-emerald-400" />
+          <MessageSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
           Positieve reviews
           {positive.length > 0 && (
-            <span className="rounded-full bg-emerald-500/15 px-1.5 text-[11px] font-bold text-emerald-400 tabular-nums">
+            <span className="rounded-full bg-emerald-500/15 px-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
               {positive.length}
             </span>
           )}
@@ -1860,7 +1860,7 @@ function AdminView({
         <CardContent className="p-5 sm:p-6 text-center">
           {actionPoints > 0 ? (
             <>
-              <p className="text-4xl sm:text-5xl font-bold text-sky-400">{actionPoints}</p>
+              <p className="text-4xl sm:text-5xl font-bold text-sky-600 dark:text-sky-400">{actionPoints}</p>
               <p className="mt-2 text-sm text-muted-foreground">
                 {actionPoints === 1 ? "actiepunt vandaag" : "actiepunten vandaag"}
                 {avg != null && <> · gem. {avg}★</>} · {reviews.length} reviews
@@ -1868,7 +1868,7 @@ function AdminView({
             </>
           ) : (
             <>
-              <PartyPopper className="mx-auto h-10 w-10 text-emerald-400" />
+              <PartyPopper className="mx-auto h-10 w-10 text-emerald-600 dark:text-emerald-400" />
               <p className="mt-2 text-sm text-muted-foreground">
                 Alles onder controle — niets dat vandaag dringend moet gebeuren
               </p>
@@ -1909,7 +1909,7 @@ function AdminView({
                 </span>
                 <span className="text-sm flex-1 min-w-0 truncate">{p.label}</span>
                 {p.filter === "verwijderaar" && overdueRemoval.length > 0 && (
-                  <span className="text-[11px] font-semibold text-rose-400 shrink-0">
+                  <span className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 shrink-0">
                     {overdueRemoval.length} te laat
                   </span>
                 )}

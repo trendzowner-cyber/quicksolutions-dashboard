@@ -159,7 +159,7 @@ export function BlogIdeasPanel() {
                       <span
                         className={`shrink-0 rounded-full border px-1.5 text-[10px] font-semibold ${
                           idea.meta.priority === 1
-                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                             : "border-border text-muted-foreground"
                         }`}
                         title="Schrijfprioriteit"
@@ -195,7 +195,7 @@ export function BlogIdeasPanel() {
 
                 {(idea.meta?.internalLinks?.length ?? 0) > 0 && (
                   <div className="space-y-1">
-                    <p className="flex items-center gap-1 text-[11px] font-semibold text-sky-400">
+                    <p className="flex items-center gap-1 text-[11px] font-semibold text-sky-600 dark:text-sky-400">
                       <Link2 className="h-3 w-3" />
                       Interne links
                     </p>
@@ -209,7 +209,7 @@ export function BlogIdeasPanel() {
 
                 {(idea.meta?.faqQuestions?.length ?? 0) > 0 && (
                   <div className="space-y-1">
-                    <p className="flex items-center gap-1 text-[11px] font-semibold text-violet-400">
+                    <p className="flex items-center gap-1 text-[11px] font-semibold text-violet-600 dark:text-violet-400">
                       <HelpCircle className="h-3 w-3" />
                       FAQ
                     </p>
@@ -224,7 +224,7 @@ export function BlogIdeasPanel() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="gap-1 text-emerald-400"
+                  className="gap-1 text-emerald-600 dark:text-emerald-400"
                   onClick={() => openIdea(idea)}
                 >
                   <Wand2 className="h-3 w-3" />

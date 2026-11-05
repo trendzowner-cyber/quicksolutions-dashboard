@@ -45,17 +45,17 @@ interface AdVariantRow {
 }
 
 const PERF_STYLE: Record<string, { label: string; cls: string }> = {
-  GOOD: { label: "Goed", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
-  LEARNING: { label: "Leert", cls: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
-  LOW: { label: "Zwak", cls: "bg-red-500/15 text-red-400 border-red-500/30" },
+  GOOD: { label: "Goed", cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" },
+  LEARNING: { label: "Leert", cls: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30" },
+  LOW: { label: "Zwak", cls: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30" },
   PENDING: { label: "In afwachting", cls: "bg-muted/40 text-muted-foreground border-border" },
 };
 
 const APPROVAL_STYLE: Record<string, { label: string; cls: string }> = {
-  APPROVED: { label: "Goedgekeurd", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
-  APPROVED_LIMITED: { label: "Beperkt", cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
-  UNDER_REVIEW: { label: "In review", cls: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
-  DISAPPROVED: { label: "Afgekeurd", cls: "bg-red-500/15 text-red-400 border-red-500/30" },
+  APPROVED: { label: "Goedgekeurd", cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" },
+  APPROVED_LIMITED: { label: "Beperkt", cls: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30" },
+  UNDER_REVIEW: { label: "In review", cls: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30" },
+  DISAPPROVED: { label: "Afgekeurd", cls: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30" },
 };
 
 function TextTable({
@@ -96,12 +96,12 @@ function TextTable({
                     }}
                     className={`flex-1 rounded-md border px-2 py-1.5 text-sm bg-background ${over ? "border-red-500" : "border-border"}`}
                   />
-                  <span className={`text-xs w-12 text-right ${over ? "text-red-400 font-medium" : "text-muted-foreground"}`}>
+                  <span className={`text-xs w-12 text-right ${over ? "text-red-600 dark:text-red-400 font-medium" : "text-muted-foreground"}`}>
                     {[...text].length}/{limit}
                   </span>
                   <button
                     onClick={() => onChange(draft.filter((_, j) => j !== i))}
-                    className="text-muted-foreground hover:text-red-400"
+                    className="text-muted-foreground hover:text-red-600 dark:hover:text-red-400"
                     title="Verwijder"
                   >
                     <X className="h-3.5 w-3.5" />
@@ -207,7 +207,7 @@ export function AdsSection({
         <CardTitle className="text-lg">Advertenties ({ads?.length ?? 0})</CardTitle>
       </CardHeader>
       <CardContent>
-        {error && <p className="text-sm text-red-400 py-2">{error}</p>}
+        {error && <p className="text-sm text-red-600 dark:text-red-400 py-2">{error}</p>}
         {!ads ? (
           <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
         ) : !ads.length ? (
@@ -227,7 +227,7 @@ export function AdsSection({
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium truncate">{ad.name}</span>
                         <Badge className={ad.status === "ENABLED"
-                          ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                          ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                           : "bg-muted/40 text-muted-foreground border-border"}>
                           {ad.status === "ENABLED" ? "Actief" : "Gepauzeerd"}
                         </Badge>

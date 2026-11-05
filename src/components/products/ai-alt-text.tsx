@@ -48,7 +48,7 @@ export function AIAltText({ productId, productName, currentAlt, onUpdated }: AIA
       {currentAlt ? (
         <p className="text-xs text-muted-foreground">Alt: {currentAlt}</p>
       ) : (
-        <p className="text-xs text-amber-400">Geen alt-tekst aanwezig</p>
+        <p className="text-xs text-amber-600 dark:text-amber-400">Geen alt-tekst aanwezig</p>
       )}
       <div className="flex gap-2">
         <Button variant="outline" size="sm" onClick={handleGenerate} disabled={loading} className="gap-1 text-xs h-7">

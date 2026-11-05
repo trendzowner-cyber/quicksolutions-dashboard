@@ -39,17 +39,17 @@ interface HealthPayload {
 const STATUS_STYLE = {
   ok: {
     icon: CheckCircle2,
-    className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
     text: "Actief",
   },
   warning: {
     icon: AlertTriangle,
-    className: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    className: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
     text: "Let op",
   },
   error: {
     icon: XCircle,
-    className: "bg-rose-500/10 text-rose-400 border-rose-500/20",
+    className: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
     text: "Storing",
   },
   unconfigured: {
@@ -157,16 +157,16 @@ export default function SettingsPage() {
             <CardTitle className="text-base">Systeemstatus</CardTitle>
             {health && (
               <div className="flex flex-wrap items-center gap-2 text-xs">
-                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
                   {health.summary.ok} actief
                 </Badge>
                 {health.summary.error > 0 && (
-                  <Badge className="bg-rose-500/10 text-rose-400 border-rose-500/20">
+                  <Badge className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20">
                     {health.summary.error} storing
                   </Badge>
                 )}
                 {health.summary.warning > 0 && (
-                  <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20">
+                  <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">
                     {health.summary.warning} aandacht
                   </Badge>
                 )}
@@ -196,11 +196,11 @@ export default function SettingsPage() {
                   <Icon
                     className={`h-4 w-4 shrink-0 mt-0.5 ${
                       s.status === "ok"
-                        ? "text-emerald-400"
+                        ? "text-emerald-600 dark:text-emerald-400"
                         : s.status === "error"
-                          ? "text-rose-400"
+                          ? "text-rose-600 dark:text-rose-400"
                           : s.status === "warning"
-                            ? "text-amber-400"
+                            ? "text-amber-600 dark:text-amber-400"
                             : "text-muted-foreground"
                     }`}
                   />
@@ -268,7 +268,7 @@ export default function SettingsPage() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            <Bell className="h-4 w-4 text-sky-400" />
+            <Bell className="h-4 w-4 text-sky-600 dark:text-sky-400" />
             Notificaties
           </CardTitle>
         </CardHeader>
@@ -281,7 +281,7 @@ export default function SettingsPage() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            <KeyRound className="h-4 w-4 text-amber-400" />
+            <KeyRound className="h-4 w-4 text-amber-600 dark:text-amber-400" />
             Wachtwoord wijzigen
           </CardTitle>
         </CardHeader>

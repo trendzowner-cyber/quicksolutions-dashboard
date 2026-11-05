@@ -430,7 +430,7 @@ export default function TakenPage() {
           <p className="text-sm text-muted-foreground">
             {stats.open} open
             {stats.overdue > 0 && (
-              <span className="text-rose-400"> • {stats.overdue} te laat</span>
+              <span className="text-rose-600 dark:text-rose-400"> • {stats.overdue} te laat</span>
             )}
             {" • "}
             {stats.done} klaar van {stats.total}

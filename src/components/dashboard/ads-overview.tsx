@@ -56,12 +56,12 @@ export function AdsOverview() {
   const cpc = (totals.clicks || 0) > 0 ? cost / totals.clicks : 0;
 
   const kpis = [
-    { label: "Impressies", value: fmt(totals.impressions||0), icon: Eye, color: "from-blue-500/20 to-cyan-500/5", iconBg: "bg-blue-500/10 text-blue-400" },
-    { label: "Clicks", value: fmt(totals.clicks||0), icon: MousePointerClick, color: "from-violet-500/20 to-purple-500/5", iconBg: "bg-violet-500/10 text-violet-400" },
-    { label: "CTR", value: pct(totals.ctr||0), icon: Target, color: "from-emerald-500/20 to-teal-500/5", iconBg: "bg-emerald-500/10 text-emerald-400" },
-    { label: "Kosten", value: eur(cost), icon: DollarSign, color: "from-amber-500/20 to-orange-500/5", iconBg: "bg-amber-500/10 text-amber-400" },
-    { label: "Conversies", value: fmt(totals.conversions||0), icon: TrendingUp, color: "from-rose-500/20 to-pink-500/5", iconBg: "bg-rose-500/10 text-rose-400" },
-    { label: "ROAS", value: roas > 0 ? roas.toFixed(1) + "x" : "—", icon: Zap, color: "from-cyan-500/20 to-blue-500/5", iconBg: "bg-cyan-500/10 text-cyan-400" },
+    { label: "Impressies", value: fmt(totals.impressions||0), icon: Eye, color: "from-blue-500/20 to-cyan-500/5", iconBg: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
+    { label: "Clicks", value: fmt(totals.clicks||0), icon: MousePointerClick, color: "from-violet-500/20 to-purple-500/5", iconBg: "bg-violet-500/10 text-violet-600 dark:text-violet-400" },
+    { label: "CTR", value: pct(totals.ctr||0), icon: Target, color: "from-emerald-500/20 to-teal-500/5", iconBg: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+    { label: "Kosten", value: eur(cost), icon: DollarSign, color: "from-amber-500/20 to-orange-500/5", iconBg: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+    { label: "Conversies", value: fmt(totals.conversions||0), icon: TrendingUp, color: "from-rose-500/20 to-pink-500/5", iconBg: "bg-rose-500/10 text-rose-600 dark:text-rose-400" },
+    { label: "ROAS", value: roas > 0 ? roas.toFixed(1) + "x" : "—", icon: Zap, color: "from-cyan-500/20 to-blue-500/5", iconBg: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400" },
   ];
 
   if (loading) return (
@@ -71,7 +71,7 @@ export function AdsOverview() {
 
   if (error) return (
     <Card className="border-border bg-gradient-to-br from-amber-500/5 to-transparent">
-      <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="text-base flex items-center gap-2"><BarChart3 className="h-4 w-4 text-amber-400"/>Google Ads</CardTitle></CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="text-base flex items-center gap-2"><BarChart3 className="h-4 w-4 text-amber-600 dark:text-amber-400"/>Google Ads</CardTitle></CardHeader>
       <CardContent><p className="text-sm text-muted-foreground">{error.length > 150 ? "Google Ads API tijdelijk niet beschikbaar" : error}</p>
       <div className="flex items-center gap-3 mt-2">
         <button onClick={() => fetchData(selectedAccount, dateRange)} className="text-xs text-primary flex items-center gap-1 hover:underline"><RotateCw className="h-3 w-3"/>Opnieuw proberen</button>
@@ -97,7 +97,7 @@ export function AdsOverview() {
       <CardHeader className="flex flex-row items-center justify-between pb-3 flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 ring-1 ring-blue-500/20">
-            <BarChart3 className="h-4 w-4 text-blue-400"/>
+            <BarChart3 className="h-4 w-4 text-blue-600 dark:text-blue-400"/>
           </div>
           <div>
             <CardTitle className="text-base">Google Ads</CardTitle>
@@ -176,7 +176,7 @@ export function AdsOverview() {
                         <td className="py-2.5 px-2 text-xs text-right">{fmt(c.conversions)}</td>
                         <td className="py-2.5 px-3">
                           <Badge variant={c.status==="ENABLED"?"default":"secondary"}
-                            className={cn("text-[10px] px-1.5 py-0",c.status==="ENABLED"&&"bg-emerald-500/10 text-emerald-400")}>
+                            className={cn("text-[10px] px-1.5 py-0",c.status==="ENABLED"&&"bg-emerald-500/10 text-emerald-600 dark:text-emerald-400")}>
                             {c.status==="ENABLED"?"Actief":c.status==="PAUSED"?"Pauze":c.status}
                           </Badge>
                         </td>

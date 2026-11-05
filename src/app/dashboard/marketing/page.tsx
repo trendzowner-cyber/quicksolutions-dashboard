@@ -106,7 +106,7 @@ function UTMSection() {
           <div className="space-y-2 p-3 bg-muted/50 rounded-lg border border-border">
             <p className="text-xs font-medium text-muted-foreground break-all">{generatedUrl}</p>
             <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={copyUrl}>
-              {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+              {copied ? <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" /> : <Copy className="h-3 w-3" />}
               {copied ? "Gekopieerd" : "Kopieer"}
             </Button>
           </div>
@@ -194,7 +194,7 @@ function CouponSection() {
               <CardContent className="p-3 flex items-center justify-between">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-500/10">
-                    <Percent className="h-4 w-4 text-violet-400" />
+                    <Percent className="h-4 w-4 text-violet-600 dark:text-violet-400" />
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">

@@ -146,7 +146,7 @@ export default function StatusPage() {
 
       {error && (
         <Card className="border-rose-500/30">
-          <CardContent className="pt-6 flex items-center gap-2 text-rose-400">
+          <CardContent className="pt-6 flex items-center gap-2 text-rose-600 dark:text-rose-400">
             <AlertTriangle className="h-4 w-4" /> {error}
           </CardContent>
         </Card>
@@ -165,10 +165,10 @@ export default function StatusPage() {
                     {m.target}
                   </CardTitle>
                   {m.status === "up" && (
-                    <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30">Online</Badge>
+                    <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">Online</Badge>
                   )}
                   {m.status === "down" && (
-                    <Badge className="bg-rose-500/15 text-rose-400 border-rose-500/30">Offline</Badge>
+                    <Badge className="bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30">Offline</Badge>
                   )}
                   {m.status === "unknown" && (
                     <Badge className="bg-muted text-muted-foreground">Onbekend</Badge>
@@ -217,7 +217,7 @@ export default function StatusPage() {
                 )}
 
                 {m.status === "down" && (
-                  <div className="flex items-start gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-400">
+                  <div className="flex items-start gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-600 dark:text-rose-400">
                     <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
                     <span>
                       {m.errorMsg
@@ -280,8 +280,8 @@ export default function StatusPage() {
                     variant="outline"
                     className={
                       inc.status === "resolved"
-                        ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
-                        : "border-rose-500/20 bg-rose-500/10 text-rose-400"
+                        ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        : "border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400"
                     }
                   >
                     {inc.status === "resolved"

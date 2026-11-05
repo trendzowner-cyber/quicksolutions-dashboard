@@ -121,11 +121,11 @@ export default function AnalyticsPage() {
 
       {/* Live Counter Cards (always visible) */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
-        <LiveCard title="Live Bezoekers" value={live?.liveVisitors ?? 0} icon={Users} color="text-emerald-400" bg="bg-emerald-500/10" ring="ring-emerald-500/20" />
-        <LiveCard title="Actieve Sessies" value={live?.activeSessions ?? 0} icon={Activity} color="text-blue-400" bg="bg-blue-500/10" ring="ring-blue-500/20" />
-        <LiveCard title="Winkelwagens" value={live?.activeCarts ?? 0} icon={ShoppingCart} color="text-amber-400" bg="bg-amber-500/10" ring="ring-amber-500/20" />
-        <LiveCard title="Checkouts" value={live?.activeCheckouts ?? 0} icon={CreditCard} color="text-violet-400" bg="bg-violet-500/10" ring="ring-violet-500/20" />
-        <LiveCard title="Orders (60m)" value={live?.recentOrders ?? 0} icon={TrendingUp} color="text-rose-400" bg="bg-rose-500/10" ring="ring-rose-500/20" />
+        <LiveCard title="Live Bezoekers" value={live?.liveVisitors ?? 0} icon={Users} color="text-emerald-600 dark:text-emerald-400" bg="bg-emerald-500/10" ring="ring-emerald-500/20" />
+        <LiveCard title="Actieve Sessies" value={live?.activeSessions ?? 0} icon={Activity} color="text-blue-600 dark:text-blue-400" bg="bg-blue-500/10" ring="ring-blue-500/20" />
+        <LiveCard title="Winkelwagens" value={live?.activeCarts ?? 0} icon={ShoppingCart} color="text-amber-600 dark:text-amber-400" bg="bg-amber-500/10" ring="ring-amber-500/20" />
+        <LiveCard title="Checkouts" value={live?.activeCheckouts ?? 0} icon={CreditCard} color="text-violet-600 dark:text-violet-400" bg="bg-violet-500/10" ring="ring-violet-500/20" />
+        <LiveCard title="Orders (60m)" value={live?.recentOrders ?? 0} icon={TrendingUp} color="text-rose-600 dark:text-rose-400" bg="bg-rose-500/10" ring="ring-rose-500/20" />
       </div>
 
       {/* Today Stats */}
@@ -144,7 +144,7 @@ export default function AnalyticsPage() {
             <Card className="lg:col-span-2 border-border">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <Users className="h-4 w-4 text-emerald-400" /> Live Bezoekers
+                  <Users className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Live Bezoekers
                   <Badge variant="secondary" className="text-[10px] ml-auto">{live?.liveSessions.length ?? 0} online</Badge>
                 </CardTitle>
               </CardHeader>

@@ -27,12 +27,12 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const ROLE_COLORS: Record<string, string> = {
-  owner: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  admin: "bg-violet-500/10 text-violet-400 border-violet-500/20",
-  marketer: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  content_manager: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  sales: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
-  analyst: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+  owner: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+  admin: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
+  marketer: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+  content_manager: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+  sales: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20",
+  analyst: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
   viewer: "bg-gray-500/10 text-gray-400 border-gray-500/20",
 };
 
@@ -160,7 +160,7 @@ export default function TeamPage() {
                     <Users className="h-4 w-4 text-muted-foreground"/>{g.name}
                   </p>
                   {g.active && (
-                    <Badge className="text-[10px] border bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
+                    <Badge className="text-[10px] border bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
                       Aan de beurt deze week
                     </Badge>
                   )}
@@ -205,7 +205,7 @@ export default function TeamPage() {
                       {user.status === "active" ? "Actief" : "Uitgeschakeld"}
                     </Badge>
                     {leadGroup && (
-                      <Badge className="text-[10px] border bg-amber-500/15 text-amber-400 border-amber-500/30 gap-1">
+                      <Badge className="text-[10px] border bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 gap-1">
                         <Crown className="h-2.5 w-2.5"/>{leadGroup.name} lead
                       </Badge>
                     )}

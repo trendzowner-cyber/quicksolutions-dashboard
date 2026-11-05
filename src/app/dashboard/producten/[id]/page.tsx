@@ -139,7 +139,7 @@ export default async function ProductDetailPage({
             <div className="flex items-center gap-2 mt-1">
               {salePrice && salePrice !== regularPrice ? (
                 <>
-                  <p className="text-2xl font-bold text-emerald-400">
+                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                     {formatPrice(salePrice)}
                   </p>
                   <p className="text-lg text-muted-foreground line-through">

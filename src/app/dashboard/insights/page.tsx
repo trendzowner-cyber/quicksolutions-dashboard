@@ -79,25 +79,25 @@ export default function InsightsPage() {
             label="Omzet (7d)"
             value={`€${Math.round(metrics.weekRevenue).toLocaleString("nl-BE")}`}
             sub={`€${Math.round(metrics.monthRevenue).toLocaleString("nl-BE")} in 30d`}
-            icon={Euro} color="text-emerald-400"
+            icon={Euro} color="text-emerald-600 dark:text-emerald-400"
           />
           <MetricCard
             label="Sessies (7d)"
             value={metrics.weekSessions.toString()}
             sub={`${metrics.weekVisitors} unieke bezoekers`}
-            icon={Users} color="text-blue-400"
+            icon={Users} color="text-blue-600 dark:text-blue-400"
           />
           <MetricCard
             label="Orders (30d)"
             value={metrics.monthOrders.toString()}
             sub={`€${Math.round(metrics.avgOrderValue).toLocaleString("nl-BE")} gem. per order`}
-            icon={ShoppingCart} color="text-violet-400"
+            icon={ShoppingCart} color="text-violet-600 dark:text-violet-400"
           />
           <MetricCard
             label="Blog → Sales"
             value={metrics.blogAttributedSales.toString()}
             sub="Sessies met blog + aankoop"
-            icon={FileText} color="text-amber-400"
+            icon={FileText} color="text-amber-600 dark:text-amber-400"
           />
         </div>
       )}
@@ -168,11 +168,11 @@ export default function InsightsPage() {
                 {devices.map((d) => (
                   <div key={d.type} className="text-center">
                     {d.type === "mobile" ? (
-                      <Smartphone className="h-8 w-8 mx-auto text-blue-400" />
+                      <Smartphone className="h-8 w-8 mx-auto text-blue-600 dark:text-blue-400" />
                     ) : d.type === "tablet" ? (
-                      <Smartphone className="h-8 w-8 mx-auto text-amber-400" />
+                      <Smartphone className="h-8 w-8 mx-auto text-amber-600 dark:text-amber-400" />
                     ) : (
-                      <Monitor className="h-8 w-8 mx-auto text-violet-400" />
+                      <Monitor className="h-8 w-8 mx-auto text-violet-600 dark:text-violet-400" />
                     )}
                     <p className="text-lg font-bold mt-1">{d.count.toLocaleString("nl-BE")}</p>
                     <p className="text-[10px] text-muted-foreground capitalize">{d.type || "other"} · sessies</p>

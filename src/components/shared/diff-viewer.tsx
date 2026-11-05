@@ -23,7 +23,7 @@ export function DiffViewer({ original, suggested, label }: DiffViewerProps) {
 
       {/* Suggested */}
       <div>
-        <p className="text-xs font-medium text-emerald-400 mb-1.5 uppercase tracking-wider">
+        <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1.5 uppercase tracking-wider">
           AI Suggestie
         </p>
         <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
@@ -60,7 +60,7 @@ export function DiffViewerHTML({
 
       {/* Suggested */}
       <div>
-        <p className="text-xs font-medium text-emerald-400 mb-1.5 uppercase tracking-wider">
+        <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1.5 uppercase tracking-wider">
           AI Suggestie
         </p>
         <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4 max-h-96 overflow-y-auto">

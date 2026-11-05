@@ -19,11 +19,11 @@ const GRADIENTS: Record<string, string> = {
 };
 
 const ICON_BG: Record<string, string> = {
-  blue: "bg-blue-500/10 text-blue-400 ring-blue-500/20",
-  emerald: "bg-emerald-500/10 text-emerald-400 ring-emerald-500/20",
-  violet: "bg-violet-500/10 text-violet-400 ring-violet-500/20",
-  amber: "bg-amber-500/10 text-amber-400 ring-amber-500/20",
-  rose: "bg-rose-500/10 text-rose-400 ring-rose-500/20",
+  blue: "bg-blue-500/10 text-blue-600 dark:text-blue-400 ring-blue-500/20",
+  emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20",
+  violet: "bg-violet-500/10 text-violet-600 dark:text-violet-400 ring-violet-500/20",
+  amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-amber-500/20",
+  rose: "bg-rose-500/10 text-rose-600 dark:text-rose-400 ring-rose-500/20",
 };
 
 export function StatsCard({

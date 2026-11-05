@@ -63,7 +63,7 @@ export function AISocialPost({ productName, price, description, permalink }: AIS
           {result.hashtags?.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {result.hashtags.map((tag) => (
-                <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400">{tag}</span>
+                <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-400">{tag}</span>
               ))}
             </div>
           )}

@@ -154,7 +154,7 @@ export function PushControls({ compact = false }: { compact?: boolean }) {
     return (
       <div className="space-y-2">
         <p className={`${text} flex items-start gap-1.5 text-muted-foreground`}>
-          <Info className={`${compact ? "h-3.5 w-3.5" : "h-4 w-4"} mt-0.5 shrink-0 text-sky-400`} />
+          <Info className={`${compact ? "h-3.5 w-3.5" : "h-4 w-4"} mt-0.5 shrink-0 text-sky-600 dark:text-sky-400`} />
           Pushmeldingen werken alleen als de app op je beginscherm staat.
         </p>
         <Button
@@ -174,7 +174,7 @@ export function PushControls({ compact = false }: { compact?: boolean }) {
     return (
       <div className={`${text} space-y-1 text-muted-foreground`}>
         <p className="flex items-start gap-1.5">
-          <Info className={`${compact ? "h-3.5 w-3.5" : "h-4 w-4"} mt-0.5 shrink-0 text-rose-400`} />
+          <Info className={`${compact ? "h-3.5 w-3.5" : "h-4 w-4"} mt-0.5 shrink-0 text-rose-600 dark:text-rose-400`} />
           Meldingen zijn geblokkeerd voor deze app.
         </p>
         {isIOS() && (
@@ -193,7 +193,7 @@ export function PushControls({ compact = false }: { compact?: boolean }) {
   if (status === "subscribed") {
     return (
       <div className="space-y-2">
-        <p className={`${text} flex items-center gap-1.5 font-medium text-emerald-400`}>
+        <p className={`${text} flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400`}>
           <Bell className={`${compact ? "h-3.5 w-3.5" : "h-4 w-4"} shrink-0`} />
           Push-meldingen staan aan
         </p>

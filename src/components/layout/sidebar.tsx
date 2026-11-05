@@ -29,19 +29,19 @@ import {
 } from "lucide-react";
 
 const baseItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, color: "text-blue-400" },
-  { href: "/dashboard/status", label: "Status", icon: HeartPulse, color: "text-teal-400" },
-  { href: "/dashboard/reviews", label: "Reviews", icon: Star, color: "text-amber-400" },
-  { href: "/dashboard/analytics", label: "Analytics", icon: Activity, color: "text-emerald-400" },
-  { href: "/dashboard/insights", label: "Inzichten", icon: Lightbulb, color: "text-yellow-400" },
-  { href: "/dashboard/producten", label: "Producten", icon: Package, color: "text-violet-400" },
-  { href: "/dashboard/bestellingen", label: "Bestellingen", icon: ShoppingCart, color: "text-emerald-400" },
-  { href: "/dashboard/blog", label: "Blog", icon: FileText, color: "text-amber-400" },
-  { href: "/dashboard/paginas", label: "Pagina's", icon: File, color: "text-rose-400" },
-  { href: "/dashboard/taken", label: "Taken", icon: ListChecks, color: "text-cyan-400" },
-  { href: "/dashboard/marketing", label: "Marketing", icon: Megaphone, color: "text-pink-400" },
-  { href: "/dashboard/autopilot", label: "Ads Autopilot", icon: Radar, color: "text-brand" },
-  { href: "/dashboard/audit", label: "SEO Audit", icon: SearchCheck, color: "text-orange-400" },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, color: "text-blue-600 dark:text-blue-400" },
+  { href: "/dashboard/status", label: "Status", icon: HeartPulse, color: "text-teal-600 dark:text-teal-400" },
+  { href: "/dashboard/reviews", label: "Reviews", icon: Star, color: "text-amber-600 dark:text-amber-400" },
+  { href: "/dashboard/analytics", label: "Analytics", icon: Activity, color: "text-emerald-600 dark:text-emerald-400" },
+  { href: "/dashboard/insights", label: "Inzichten", icon: Lightbulb, color: "text-yellow-600 dark:text-yellow-400" },
+  { href: "/dashboard/producten", label: "Producten", icon: Package, color: "text-violet-600 dark:text-violet-400" },
+  { href: "/dashboard/bestellingen", label: "Bestellingen", icon: ShoppingCart, color: "text-emerald-600 dark:text-emerald-400" },
+  { href: "/dashboard/blog", label: "Blog", icon: FileText, color: "text-amber-600 dark:text-amber-400" },
+  { href: "/dashboard/paginas", label: "Pagina's", icon: File, color: "text-rose-600 dark:text-rose-400" },
+  { href: "/dashboard/taken", label: "Taken", icon: ListChecks, color: "text-cyan-600 dark:text-cyan-400" },
+  { href: "/dashboard/marketing", label: "Marketing", icon: Megaphone, color: "text-pink-600 dark:text-pink-400" },
+  { href: "/dashboard/autopilot", label: "Google Ads", icon: Radar, color: "text-google" },
+  { href: "/dashboard/audit", label: "SEO Audit", icon: SearchCheck, color: "text-orange-600 dark:text-orange-400" },
 ];
 
 export function Sidebar() {
@@ -77,7 +77,7 @@ export function Sidebar() {
     ...baseItems,
     ...(isAdmin
       ? [
-          { href: "/dashboard/team", label: "Team", icon: Users, color: "text-pink-400" },
+          { href: "/dashboard/team", label: "Team", icon: Users, color: "text-pink-600 dark:text-pink-400" },
           { href: "/dashboard/instellingen", label: "Instellingen", icon: Settings, color: "text-gray-400" },
         ]
       : []),
@@ -159,7 +159,7 @@ export function Sidebar() {
         <Button
           variant="ghost"
           size="sm"
-          className="w-full justify-start gap-2 text-muted-foreground hover:text-rose-400 transition-colors h-9"
+          className="w-full justify-start gap-2 text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400 transition-colors h-9"
           onClick={handleLogout}
         >
           <LogOut className="h-4 w-4" />

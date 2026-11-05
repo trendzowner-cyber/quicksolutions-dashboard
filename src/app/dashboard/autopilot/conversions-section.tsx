@@ -52,7 +52,7 @@ function CopyBlock({ code, label }: { code: string; label: string }) {
             setTimeout(() => setCopied(false), 2000);
           }}
         >
-          {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+          {copied ? <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
         </Button>
       </div>
       <pre className="rounded-md border border-border bg-muted/30 p-3 text-xs overflow-x-auto whitespace-pre-wrap break-all max-h-48 overflow-y-auto">
@@ -91,7 +91,7 @@ export function ConversionsSection() {
           Wat je account meet en hoe. &quot;Primair&quot; telt mee voor biedstrategie-optimalisatie;
           secundair is alleen rapportage. Aanmaken/wijzigen doe je in Google Ads zelf — dit scherm is bewust alleen-lezen.
         </p>
-        {error && <p className="text-sm text-red-400 py-2">{error}</p>}
+        {error && <p className="text-sm text-red-600 dark:text-red-400 py-2">{error}</p>}
         {!conversions ? (
           <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
         ) : !conversions.length ? (
@@ -114,7 +114,7 @@ export function ConversionsSection() {
                       <Badge className="bg-brand/15 text-brand border-brand/30">Primair</Badge>
                     )}
                     <Badge className={c.status === "ENABLED"
-                      ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                       : "bg-muted/40 text-muted-foreground border-border"}>
                       {c.status === "ENABLED" ? "Actief" : c.status}
                     </Badge>

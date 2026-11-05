@@ -98,22 +98,22 @@ const STATE_STYLE: Record<
 > = {
   done: {
     icon: CheckCircle2,
-    className: "text-emerald-400",
+    className: "text-emerald-600 dark:text-emerald-400",
     ring: "bg-emerald-500/10 ring-emerald-500/20",
   },
   pending: {
     icon: Clock,
-    className: "text-amber-400",
+    className: "text-amber-600 dark:text-amber-400",
     ring: "bg-amber-500/10 ring-amber-500/20",
   },
   late: {
     icon: Clock,
-    className: "text-amber-400",
+    className: "text-amber-600 dark:text-amber-400",
     ring: "bg-amber-500/10 ring-amber-500/20",
   },
   missed: {
     icon: AlertTriangle,
-    className: "text-rose-400",
+    className: "text-rose-600 dark:text-rose-400",
     ring: "bg-rose-500/10 ring-rose-500/20",
   },
 };
@@ -196,7 +196,7 @@ function WorkerCard({
           <span
             className={cn(
               "text-xs",
-              worker.online ? "text-emerald-400" : "text-muted-foreground"
+              worker.online ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
             )}
           >
             {worker.online ? "Online" : "Offline"}
@@ -211,7 +211,7 @@ function WorkerCard({
           <span
             className={cn(
               "text-xs font-medium",
-              allDone ? "text-emerald-400" : "text-foreground"
+              allDone ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"
             )}
           >
             {worker.todayTotal > 0
@@ -304,8 +304,8 @@ function WorkerCard({
                     {task.statusLabel} ·{" "}
                     <span
                       className={cn(
-                        task.overdue && "font-medium text-rose-400",
-                        task.dueToday && "font-medium text-amber-400"
+                        task.overdue && "font-medium text-rose-600 dark:text-rose-400",
+                        task.dueToday && "font-medium text-amber-600 dark:text-amber-400"
                       )}
                     >
                       {task.dueText}

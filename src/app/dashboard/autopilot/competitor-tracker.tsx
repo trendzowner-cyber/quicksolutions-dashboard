@@ -36,9 +36,9 @@ interface TrackedCompetitor {
 }
 
 const FORMAT_STYLE: Record<string, { label: string; cls: string }> = {
-  text: { label: "Tekst", cls: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
-  image: { label: "Beeld", cls: "bg-purple-500/15 text-purple-400 border-purple-500/30" },
-  video: { label: "Video", cls: "bg-red-500/15 text-red-400 border-red-500/30" },
+  text: { label: "Tekst", cls: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30" },
+  image: { label: "Beeld", cls: "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30" },
+  video: { label: "Video", cls: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30" },
   unknown: { label: "?", cls: "bg-muted/40 text-muted-foreground border-border" },
 };
 
@@ -190,7 +190,7 @@ export function CompetitorTracker({ showToast }: { showToast: (m: string) => voi
                         <span className="text-xs text-muted-foreground">{c.domain}</span>
                         <Badge className="bg-muted/40 text-muted-foreground border-border">{c.adCount} ads</Badge>
                         {newCount > 0 && (
-                          <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
+                          <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
                             {newCount} nieuw
                           </Badge>
                         )}
@@ -219,7 +219,7 @@ export function CompetitorTracker({ showToast }: { showToast: (m: string) => voi
                         onClick={() => remove(c.domain)}
                         title="Stop met volgen"
                       >
-                        <Trash2 className="h-4 w-4 text-red-400" />
+                        <Trash2 className="h-4 w-4 text-red-600 dark:text-red-400" />
                       </Button>
                     </div>
                   </div>
@@ -265,7 +265,7 @@ export function CompetitorTracker({ showToast }: { showToast: (m: string) => voi
                                   <div className="px-2 py-1.5 flex items-center gap-1 flex-wrap">
                                     <Badge className={f.cls}>{f.label}</Badge>
                                     {isNew(a) && (
-                                      <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30">nieuw</Badge>
+                                      <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">nieuw</Badge>
                                     )}
                                     <span className="text-[10px] text-muted-foreground ml-auto">
                                       {a.lastShown ? `t/m ${dateShort(a.lastShown)}` : ""}

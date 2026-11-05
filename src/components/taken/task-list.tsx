@@ -155,8 +155,8 @@ export function TaskList({
                 <TableCell
                   className={cn(
                     "text-xs tabular-nums",
-                    overdue && "font-medium text-rose-400",
-                    dueToday && "font-medium text-amber-400",
+                    overdue && "font-medium text-rose-600 dark:text-rose-400",
+                    dueToday && "font-medium text-amber-600 dark:text-amber-400",
                     !task.dueDate && "text-muted-foreground"
                   )}
                 >

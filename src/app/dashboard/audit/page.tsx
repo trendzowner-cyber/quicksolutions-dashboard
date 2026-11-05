@@ -304,7 +304,7 @@ export default function AuditPage() {
               {STEPS.map((step, i) => (
                 <div key={step.key} className="flex items-center gap-2">
                   {i < currentStep ? (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                   ) : i === currentStep ? (
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
                   ) : (
@@ -332,13 +332,13 @@ export default function AuditPage() {
             </Card>
             <Card className="border-red-500/30 bg-red-500/5">
               <CardContent className="p-4">
-                <p className="text-2xl font-bold text-red-400">{highCount}</p>
+                <p className="text-2xl font-bold text-red-600 dark:text-red-400">{highCount}</p>
                 <p className="text-sm text-muted-foreground">Hoge Prioriteit</p>
               </CardContent>
             </Card>
             <Card className="border-yellow-500/30 bg-yellow-500/5">
               <CardContent className="p-4">
-                <p className="text-2xl font-bold text-yellow-400">
+                <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                   {medCount}
                 </p>
                 <p className="text-sm text-muted-foreground">Medium</p>
@@ -346,7 +346,7 @@ export default function AuditPage() {
             </Card>
             <Card className="border-blue-500/30 bg-blue-500/5">
               <CardContent className="p-4">
-                <p className="text-2xl font-bold text-blue-400">{lowCount}</p>
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{lowCount}</p>
                 <p className="text-sm text-muted-foreground">Laag</p>
               </CardContent>
             </Card>
@@ -401,7 +401,7 @@ export default function AuditPage() {
                       <p className="text-sm text-muted-foreground">
                         {issue.description}
                       </p>
-                      <p className="text-sm text-emerald-400">
+                      <p className="text-sm text-emerald-600 dark:text-emerald-400">
                         {issue.suggestion}
                       </p>
                     </div>

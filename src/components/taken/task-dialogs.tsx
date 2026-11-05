@@ -368,7 +368,7 @@ export function TaskDetailDialog({
               variant="ghost"
               size="icon-sm"
               aria-label="Taak verwijderen"
-              className="shrink-0 text-muted-foreground hover:text-rose-400"
+              className="shrink-0 text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400"
               onClick={remove}
               disabled={busy}
             >
@@ -469,7 +469,7 @@ export function TaskDetailDialog({
                   onClick={() => removeSubtask(st.id)}
                   className="opacity-0 transition-opacity group-hover:opacity-100"
                 >
-                  <X className="h-3.5 w-3.5 text-muted-foreground hover:text-rose-400" />
+                  <X className="h-3.5 w-3.5 text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400" />
                 </button>
               </div>
             ))}

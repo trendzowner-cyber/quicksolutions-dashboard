@@ -100,7 +100,7 @@ function Stars({ rating }: { rating: number }) {
           key={i}
           className={cn(
             "h-4 w-4",
-            i <= lit ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40"
+            i <= lit ? "fill-amber-400 text-amber-600 dark:text-amber-400" : "text-muted-foreground/40"
           )}
         />
       ))}
@@ -157,7 +157,7 @@ function Delta({ now, before }: { now: number; before: number }) {
     <span
       className={cn(
         "inline-flex items-center gap-0.5 text-sm font-medium",
-        up ? "text-emerald-400" : "text-rose-400"
+        up ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
       )}
     >
       <Icon className="h-4 w-4" />
@@ -247,7 +247,7 @@ export function ResultatenPage() {
       {/* ── Reviews ── */}
       {!core && !coreFailed && <CardSkeleton title="Reviews" />}
       {core && (
-        <Card title="Reviews op Google" icon={Star} tone="text-amber-400">
+        <Card title="Reviews op Google" icon={Star} tone="text-amber-600 dark:text-amber-400">
           {!reviews ? (
             <Unavailable>De reviews konden niet opgehaald worden.</Unavailable>
           ) : reviews.googleRating === null ? (
@@ -290,7 +290,7 @@ export function ResultatenPage() {
       {/* ── Website ── */}
       {!core && !coreFailed && <CardSkeleton title="Website" />}
       {core && (
-        <Card title="Website" icon={Eye} tone="text-sky-400">
+        <Card title="Website" icon={Eye} tone="text-sky-600 dark:text-sky-400">
           {!website ? (
             <Unavailable>De bezoekcijfers konden niet opgehaald worden.</Unavailable>
           ) : (
@@ -339,7 +339,7 @@ export function ResultatenPage() {
       {/* ── Bestellingen ── */}
       {!core && !coreFailed && <CardSkeleton title="Bestellingen" />}
       {core && (
-        <Card title="Bestellingen" icon={ShoppingCart} tone="text-emerald-400">
+        <Card title="Bestellingen" icon={ShoppingCart} tone="text-emerald-600 dark:text-emerald-400">
           {!orders ? (
             <Unavailable>De bestellingen konden niet opgehaald worden.</Unavailable>
           ) : (
@@ -362,7 +362,7 @@ export function ResultatenPage() {
       {/* ── Ads ── */}
       {!ads && <CardSkeleton title="Google Ads" />}
       {ads && (
-        <Card title="Google Ads" icon={Megaphone} tone="text-violet-400">
+        <Card title="Google Ads" icon={Megaphone} tone="text-violet-600 dark:text-violet-400">
           {!ads.connected ? (
             <Unavailable>
               Google Ads is nog niet gekoppeld. Laat dit instellen door

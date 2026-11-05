@@ -167,8 +167,8 @@ export function MeerPage() {
           className="block w-full rounded-xl border border-border bg-card text-left active:bg-muted/40 disabled:opacity-60"
         >
           <RowShell>
-            <LogOut className="h-5 w-5 shrink-0 text-rose-400" />
-            <span className="flex-1 font-medium text-rose-400">
+            <LogOut className="h-5 w-5 shrink-0 text-rose-600 dark:text-rose-400" />
+            <span className="flex-1 font-medium text-rose-600 dark:text-rose-400">
               {loggingOut ? "Bezig met uitloggen…" : "Uitloggen"}
             </span>
           </RowShell>

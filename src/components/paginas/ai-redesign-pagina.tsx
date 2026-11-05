@@ -146,7 +146,7 @@ export function AIRedesignPagina({
           {/* Rendered preview */}
           <div className="rounded-xl border border-emerald-500/30 overflow-hidden">
             <div className="bg-emerald-500/10 px-4 py-2 border-b border-emerald-500/20">
-              <p className="text-xs text-emerald-400 font-medium">
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
                 AI Herontwerp — Live Preview
               </p>
             </div>

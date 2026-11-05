@@ -82,20 +82,20 @@ const ICONS: Record<string, typeof Bell> = {
 };
 
 const TONE: Record<string, string> = {
-  came_back: "text-rose-400",
-  edited: "text-amber-400",
-  sync_error: "text-amber-400",
-  removal_paid: "text-emerald-400",
-  removed: "text-emerald-400",
-  auto_replied: "text-emerald-400",
-  created: "text-blue-400",
-  task_assigned: "text-cyan-400",
-  uptime_down: "text-rose-400",
-  uptime_up: "text-emerald-400",
-  recurring_missed: "text-rose-400",
-  recurring_reminder: "text-amber-400",
-  recurring_completed: "text-emerald-400",
-  telegram_error: "text-amber-400",
+  came_back: "text-rose-600 dark:text-rose-400",
+  edited: "text-amber-600 dark:text-amber-400",
+  sync_error: "text-amber-600 dark:text-amber-400",
+  removal_paid: "text-emerald-600 dark:text-emerald-400",
+  removed: "text-emerald-600 dark:text-emerald-400",
+  auto_replied: "text-emerald-600 dark:text-emerald-400",
+  created: "text-blue-600 dark:text-blue-400",
+  task_assigned: "text-cyan-600 dark:text-cyan-400",
+  uptime_down: "text-rose-600 dark:text-rose-400",
+  uptime_up: "text-emerald-600 dark:text-emerald-400",
+  recurring_missed: "text-rose-600 dark:text-rose-400",
+  recurring_reminder: "text-amber-600 dark:text-amber-400",
+  recurring_completed: "text-emerald-600 dark:text-emerald-400",
+  telegram_error: "text-amber-600 dark:text-amber-400",
 };
 
 function timeAgo(iso: string): string {

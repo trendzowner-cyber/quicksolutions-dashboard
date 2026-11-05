@@ -310,3 +310,92 @@ export async function getAuctionChanges(
 
   return changes;
 }
+
+// ─── Per-domain keyword drilldown (live, on click) ───
+// Verified 2026-11-05: keyword_view + segments.auction_insight_domain works in
+// SELECT; the segment is NOT filterable in WHERE (PROHIBITED_FIELD_IN_WHERE),
+// so we read the window and filter in code. ~8k rows / 2 pages / ±2.5s for
+// 30 days on this account.
+
+export interface DrilldownKeyword {
+  text: string;
+  matchType: string;
+  adGroup: string;
+  campaign: string;
+  daysSeen: number;
+  firstSeen: string;
+  lastSeen: string;
+}
+
+export interface DomainDrilldown {
+  domain: string;
+  windowStart: string;
+  windowEnd: string;
+  keywords: DrilldownKeyword[];
+  /** Domains seen at keyword level but without keyword detail rows. */
+  note: string;
+}
+
+export async function fetchDomainDrilldown(
+  accessToken: string,
+  customerId: string,
+  domain: string,
+  start: string,
+  end: string
+): Promise<DomainDrilldown> {
+  const results = await queryAllPages(customerId, `
+    SELECT ad_group_criterion.keyword.text, ad_group_criterion.keyword.match_type,
+           ad_group.name, campaign.name,
+           segments.auction_insight_domain, segments.date
+    FROM keyword_view
+    WHERE segments.date BETWEEN '${start}' AND '${end}'
+      AND campaign.advertising_channel_type = 'SEARCH'
+  `, accessToken);
+
+  const target = domain.trim().toLowerCase();
+  const byKeyword = new Map<string, DrilldownKeyword & { dates: Set<string> }>();
+
+  for (const r of results) {
+    const seg = (r.segments ?? {}) as Record<string, unknown>;
+    if (String(seg.auctionInsightDomain ?? "").toLowerCase() !== target) continue;
+    const date = String(seg.date ?? "");
+    const crit = (r.adGroupCriterion ?? {}) as Record<string, unknown>;
+    const kw = (crit.keyword ?? {}) as Record<string, unknown>;
+    const text = String(kw.text ?? "");
+    if (!text || !date) continue;
+    const adGroup = String(((r.adGroup ?? {}) as Record<string, unknown>).name ?? "");
+    const campaign = String(((r.campaign ?? {}) as Record<string, unknown>).name ?? "");
+    const key = `${text}|${adGroup}|${campaign}`;
+
+    if (!byKeyword.has(key)) {
+      byKeyword.set(key, {
+        text,
+        matchType: String(kw.matchType ?? ""),
+        adGroup,
+        campaign,
+        daysSeen: 0,
+        firstSeen: date,
+        lastSeen: date,
+        dates: new Set(),
+      });
+    }
+    const e = byKeyword.get(key)!;
+    e.dates.add(date);
+    if (date < e.firstSeen) e.firstSeen = date;
+    if (date > e.lastSeen) e.lastSeen = date;
+  }
+
+  const keywords = [...byKeyword.values()]
+    .map(({ dates, ...k }) => ({ ...k, daysSeen: dates.size }))
+    .sort((a, b) => b.daysSeen - a.daysSeen);
+
+  return {
+    domain: target,
+    windowStart: start,
+    windowEnd: end,
+    keywords,
+    note: keywords.length
+      ? ""
+      : "Geen keyword-niveau detail voor dit domein in dit venster. Keyword-dekking is smaller dan campagne-dekking — afwezigheid hier is geen bewijs dat het domein niet meebiedt.",
+  };
+}

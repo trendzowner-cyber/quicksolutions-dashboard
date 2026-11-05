@@ -41,6 +41,24 @@ interface AuctionChange {
   detail: string;
 }
 
+interface DrilldownKeyword {
+  text: string;
+  matchType: string;
+  adGroup: string;
+  campaign: string;
+  daysSeen: number;
+  firstSeen: string;
+  lastSeen: string;
+}
+
+interface DomainDrilldown {
+  domain: string;
+  windowStart: string;
+  windowEnd: string;
+  keywords: DrilldownKeyword[];
+  note: string;
+}
+
 const STATUS_STYLE: Record<string, { label: string; cls: string }> = {
   new: { label: "Nieuw", cls: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
   expanding: { label: "Actiever", cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
@@ -64,6 +82,27 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
   const [csv, setCsv] = useState("");
   const [pulledOn, setPulledOn] = useState(() => new Date().toISOString().slice(0, 10));
   const [importing, setImporting] = useState(false);
+  const [drilldown, setDrilldown] = useState<DomainDrilldown | null>(null);
+  const [drillLoading, setDrillLoading] = useState<string | null>(null);
+
+  async function openDrilldown(domain: string) {
+    if (drilldown?.domain === domain) {
+      setDrilldown(null);
+      return;
+    }
+    setDrillLoading(domain);
+    setDrilldown(null);
+    try {
+      const res = await fetch(`/api/ads/auction/domain?domain=${encodeURIComponent(domain)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.details || data.error);
+      setDrilldown(data);
+    } catch (e) {
+      showToast(`✗ Drilldown mislukt: ${String(e)}`);
+    } finally {
+      setDrillLoading(null);
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -209,7 +248,15 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
                       const st = STATUS_STYLE[c.status];
                       return (
                         <tr key={c.domain} className="border-b border-border/50 hover:bg-muted/20">
-                          <td className="py-2 pr-3 font-medium">{c.domain}</td>
+                          <td className="py-2 pr-3">
+                            <button
+                              onClick={() => openDrilldown(c.domain)}
+                              className="font-medium text-left hover:text-brand underline-offset-2 hover:underline"
+                              title="Toon welke keywords dit domein beconcurreert"
+                            >
+                              {drillLoading === c.domain ? " laden…" : c.domain}
+                            </button>
+                          </td>
                           <td className="py-2 pr-3 text-muted-foreground">{c.firstSeen}</td>
                           <td className="py-2 pr-3 text-muted-foreground">{c.lastSeen}</td>
                           <td className="py-2 pr-3 text-right">{c.daysSeen30} / 30</td>
@@ -227,6 +274,53 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
                   </tbody>
                 </table>
               </div>
+
+              {drilldown && (
+                <div className="rounded-lg border border-brand/30 bg-brand/5 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-medium text-sm">
+                      {drilldown.domain} — beconcurreert {drilldown.keywords.length} keyword{drilldown.keywords.length === 1 ? "" : "s"}
+                      <span className="text-xs text-muted-foreground font-normal ml-2">
+                        {drilldown.windowStart} → {drilldown.windowEnd}
+                      </span>
+                    </p>
+                    <Button size="sm" variant="ghost" onClick={() => setDrilldown(null)}>Sluit</Button>
+                  </div>
+                  {drilldown.note ? (
+                    <p className="text-xs text-muted-foreground">{drilldown.note}</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-xs text-muted-foreground border-b border-border">
+                            <th className="py-1.5 pr-3">Keyword</th>
+                            <th className="py-1.5 pr-3">Match</th>
+                            <th className="py-1.5 pr-3">Adgroep</th>
+                            <th className="py-1.5 pr-3">Campagne</th>
+                            <th className="py-1.5 pr-3 text-right">Dagen</th>
+                            <th className="py-1.5">Laatst</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {drilldown.keywords.slice(0, 25).map((k) => (
+                            <tr key={`${k.text}|${k.adGroup}`} className="border-b border-border/40">
+                              <td className="py-1.5 pr-3 font-medium">{k.text}</td>
+                              <td className="py-1.5 pr-3 text-xs text-muted-foreground">{k.matchType}</td>
+                              <td className="py-1.5 pr-3 text-xs text-muted-foreground">{k.adGroup}</td>
+                              <td className="py-1.5 pr-3 text-xs text-muted-foreground max-w-48 truncate" title={k.campaign}>{k.campaign}</td>
+                              <td className="py-1.5 pr-3 text-right">{k.daysSeen}</td>
+                              <td className="py-1.5 text-xs text-muted-foreground">{k.lastSeen}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {drilldown.keywords.length > 25 && (
+                        <p className="text-xs text-muted-foreground pt-2">Top 25 van {drilldown.keywords.length} keywords.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {coverage && (
                 <p className="text-xs text-muted-foreground border-t border-border pt-3">

@@ -43,7 +43,9 @@ export function TaskStatusSelect({
   return (
     <Select value={value} onValueChange={(v) => v != null && onChange(String(v))}>
       <SelectTrigger size={size} className={cn("w-full", className)} disabled={disabled}>
-        <SelectValue />
+        <SelectValue>
+          {(v) => (v === NONE ? allLabel : TASK_STATUSES.find((s) => s.key === v)?.label ?? String(v))}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {allowAll && <SelectItem value={NONE}>{allLabel}</SelectItem>}
@@ -76,7 +78,9 @@ export function TaskPrioritySelect({
   return (
     <Select value={value} onValueChange={(v) => v != null && onChange(String(v))}>
       <SelectTrigger size={size} className={cn("w-full", className)} disabled={disabled}>
-        <SelectValue />
+        <SelectValue>
+          {(v) => (v === NONE ? allLabel : TASK_PRIORITIES.find((p) => p.key === v)?.label ?? String(v))}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {allowAll && <SelectItem value={NONE}>{allLabel}</SelectItem>}
@@ -110,7 +114,9 @@ export function TaskAssigneeSelect({
   return (
     <Select value={value} onValueChange={(v) => v != null && onChange(String(v))}>
       <SelectTrigger size={size} className={cn("w-full", className)} disabled={disabled}>
-        <SelectValue />
+        <SelectValue>
+          {(v) => (v === NONE ? (allowAll ? allLabel : "Niemand") : users.find((u) => u.id === v)?.name ?? String(v))}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         <SelectItem value={NONE}>{allowAll ? allLabel : "Niemand"}</SelectItem>
@@ -140,7 +146,9 @@ export function TaskCategorySelect({
   return (
     <Select value={value} onValueChange={(v) => v != null && onChange(String(v))}>
       <SelectTrigger size={size} className={cn("w-full", className)} disabled={disabled}>
-        <SelectValue />
+        <SelectValue>
+          {(v) => (v === NONE ? "Alle categorieën" : String(v))}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {allowAll && <SelectItem value={NONE}>Alle categorieën</SelectItem>}

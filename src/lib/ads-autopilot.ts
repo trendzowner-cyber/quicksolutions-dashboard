@@ -56,7 +56,7 @@ export interface SearchTermRow {
   conversions: number;
   conversionsValue: number;
   /** Deterministic verdict from the rule engine. */
-  verdict: "waste" | "expensive" | "low_ctr" | "winner" | "neutral";
+  verdict: "waste" | "review" | "expensive" | "low_ctr" | "winner" | "neutral";
   /** Why the rule engine flagged it — shown under the term. */
   reason: string;
   /** Filled in by the AI pass; null until then. */
@@ -217,14 +217,36 @@ export async function fetchSearchTerms(
 }
 
 /**
- * Deterministic first pass. Thresholds are conservative on purpose: a false
- * "waste" flag costs one click to dismiss, a missed money pit costs real
- * budget every day it goes unnoticed.
+ * Deterministic first pass. Thresholds are conservative on purpose and are
+ * exported so the UI can show exactly which rule fired. "waste" requires hard
+ * evidence (≥ €25 without a single conversion, so conversion lag of a few
+ * days cannot trigger it); cheaper zero-conversion terms are "review"
+ * candidates — a human or the AI pass decides, not the rule.
  */
+export const WASTE_RULES = {
+  wasteMinCostEur: 25,
+  reviewMinCostEur: 10,
+  winnerMinConversions: 2,
+  winnerMinRoas: 3,
+  expensiveCpaFactor: 2,
+  lowCtrMinImpressions: 500,
+  lowCtrMaxCtr: 0.01,
+} as const;
+
 export function analyzeSearchTerms(rows: SearchTermRow[]): SearchTermRow[] {
-  const totalCost = rows.reduce((s, r) => s + r.costMicros, 0);
-  const totalConv = rows.reduce((s, r) => s + r.conversions, 0);
-  const avgCpaMicros = totalConv > 0 ? totalCost / totalConv : null;
+  // CPA comparison happens per campaign — comparing a €2-CPC repair campaign
+  // against a PMax campaign's blended CPA produces nonsense advice.
+  const campaignAgg = new Map<string, { cost: number; conv: number }>();
+  for (const r of rows) {
+    const agg = campaignAgg.get(r.campaignId) ?? { cost: 0, conv: 0 };
+    agg.cost += r.costMicros;
+    agg.conv += r.conversions;
+    campaignAgg.set(r.campaignId, agg);
+  }
+  const campaignCpa = new Map<string, number | null>();
+  for (const [id, agg] of campaignAgg) {
+    campaignCpa.set(id, agg.conv > 0 ? agg.cost / agg.conv : null);
+  }
 
   return rows.map((r) => {
     const cost = r.costMicros / 1_000_000;
@@ -232,20 +254,24 @@ export function analyzeSearchTerms(rows: SearchTermRow[]): SearchTermRow[] {
     const cpaMicros = r.conversions > 0 ? r.costMicros / r.conversions : null;
     const roas = r.costMicros > 0 ? r.conversionsValue / r.costMicros : null;
 
-    if (r.conversions >= 2 && roas !== null && roas >= 3) {
-      return { ...r, verdict: "winner" as const, reason: `ROAS ${roas.toFixed(1)} — goede term, overweeg als exact keyword` };
+    if (r.conversions >= WASTE_RULES.winnerMinConversions && roas !== null && roas >= WASTE_RULES.winnerMinRoas) {
+      return { ...r, verdict: "winner" as const, reason: `ROAS ${roas.toFixed(1)} (≥ ${WASTE_RULES.winnerMinRoas} met ≥ ${WASTE_RULES.winnerMinConversions} conversies) — goede term, overweeg als exact keyword` };
     }
-    if (r.conversions === 0 && cost >= 15) {
-      return { ...r, verdict: "waste" as const, reason: `€${cost.toFixed(2)} gespendeerd, 0 conversies` };
+    if (r.conversions === 0 && cost >= WASTE_RULES.wasteMinCostEur) {
+      return { ...r, verdict: "waste" as const, reason: `€${cost.toFixed(2)} gespendeerd (≥ €${WASTE_RULES.wasteMinCostEur}), 0 conversies in de gekozen periode` };
     }
-    if (cpaMicros !== null && avgCpaMicros !== null && cpaMicros > avgCpaMicros * 2) {
+    if (r.conversions === 0 && cost >= WASTE_RULES.reviewMinCostEur) {
+      return { ...r, verdict: "review" as const, reason: `€${cost.toFixed(2)} gespendeerd, 0 conversies — conversies kunnen dagen later nog binnenkomen; beoordeel intentie vóór je blokkeert` };
+    }
+    const avgCpaMicros = campaignCpa.get(r.campaignId) ?? null;
+    if (cpaMicros !== null && avgCpaMicros !== null && cpaMicros > avgCpaMicros * WASTE_RULES.expensiveCpaFactor) {
       return {
         ...r,
         verdict: "expensive" as const,
-        reason: `CPA €${(cpaMicros / 1_000_000).toFixed(2)} — meer dan 2× het gemiddelde`,
+        reason: `CPA €${(cpaMicros / 1_000_000).toFixed(2)} — meer dan ${WASTE_RULES.expensiveCpaFactor}× het campagne-gemiddelde`,
       };
     }
-    if (r.impressions >= 500 && ctr < 0.01) {
+    if (r.impressions >= WASTE_RULES.lowCtrMinImpressions && ctr < WASTE_RULES.lowCtrMaxCtr) {
       return { ...r, verdict: "low_ctr" as const, reason: `CTR ${(ctr * 100).toFixed(2)}% op ${r.impressions} vertoningen` };
     }
     return { ...r, verdict: "neutral" as const, reason: "" };

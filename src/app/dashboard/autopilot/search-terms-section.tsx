@@ -22,7 +22,7 @@ export interface SearchTermRow {
   clicks: number;
   costMicros: number;
   conversions: number;
-  verdict: "waste" | "expensive" | "low_ctr" | "winner" | "neutral";
+  verdict: "waste" | "review" | "expensive" | "low_ctr" | "winner" | "neutral";
   reason: string;
   aiVerdict?: "relevant" | "irrelevant" | "brand" | null;
   aiReason?: string | null;
@@ -33,6 +33,7 @@ export const eur = (micros: number) =>
 
 export const VERDICT_STYLE: Record<string, { label: string; cls: string }> = {
   waste: { label: "Verspilling", cls: "bg-red-500/15 text-red-400 border-red-500/30" },
+  review: { label: "Beoordelen", cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
   expensive: { label: "Duur", cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
   low_ctr: { label: "Lage CTR", cls: "bg-orange-500/15 text-orange-400 border-orange-500/30" },
   winner: { label: "Winnaar", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },

@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingUp, Eye, MousePointerClick, Target, DollarSign, Zap, BarChart3, RotateCw, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { eurFull, eurCompact, numCompact, pct } from "@/lib/format";
 
-const CHANNEL_LABELS: Record<string, string> = { SHOPPING: "Shopping", PERFORMANCE_MAX: "P.Max", SEARCH: "Search", DISPLAY: "Display", VIDEO: "Video" };
+const CHANNEL_LABELS: Record<string, string> = { SHOPPING: "Shopping", PERFORMANCE_MAX: "P.Max", SEARCH: "Search", DISPLAY: "Display", VIDEO: "Video", DEMAND_GEN: "Demand Gen", LOCAL_SERVICES: "Local" };
 const DATE_RANGES = [
   { value: "TODAY", label: "Vandaag" }, { value: "YESTERDAY", label: "Gisteren" },
   { value: "LAST_7_DAYS", label: "7 dagen" }, { value: "LAST_30_DAYS", label: "30 dagen" },
@@ -15,18 +16,9 @@ const DATE_RANGES = [
   { value: "", label: "Alles" },
 ];
 
-function fmt(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000) return (n / 1_000).toFixed(1) + "K";
-  return n.toLocaleString();
-}
-function eur(n: number): string { return "€" + fmt(n); }
-function pct(n: number): string { return (n * 100).toFixed(1) + "%"; }
-function eurCents(n: number): string {
-  if (n >= 1_000_000) return "€" + (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000) return "€" + (n / 1_000).toFixed(0);
-  return "€" + n.toFixed(2);
-}
+function fmt(n: number): string { return numCompact(n); }
+function eur(n: number): string { return eurCompact(n); }
+function eurExact(n: number): string { return eurFull(n); }
 
 export function AdsOverview() {
   const [loading, setLoading] = useState(true);
@@ -151,6 +143,7 @@ export function AdsOverview() {
             <div className="bg-muted/30 px-4 py-2 border-b border-border/50 flex items-center gap-2">
               <div className="h-1.5 w-1.5 rounded-full bg-emerald-400"/>
               <span className="text-xs font-medium">Campagnes ({campaigns.length})</span>
+              <span className="text-[10px] text-muted-foreground">— met vertoningen in {DATE_RANGES.find((d) => d.value === dateRange)?.label.toLowerCase() ?? "periode"} · account {accountName || selectedAccount}</span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -178,8 +171,8 @@ export function AdsOverview() {
                         <td className="py-2.5 px-2 text-xs text-right text-muted-foreground">{fmt(c.impressions)}</td>
                         <td className="py-2.5 px-2 text-xs text-right">{fmt(c.clicks)}</td>
                         <td className="py-2.5 px-2 text-xs text-right">{pct(c.ctr)}</td>
-                        <td className="py-2.5 px-2 text-xs text-right text-muted-foreground">{eurCents(cCpc)}</td>
-                        <td className="py-2.5 px-2 text-xs text-right font-medium">{eurCents(cCost)}</td>
+                        <td className="py-2.5 px-2 text-xs text-right text-muted-foreground">{eurExact(cCpc)}</td>
+                        <td className="py-2.5 px-2 text-xs text-right font-medium">{eurExact(cCost)}</td>
                         <td className="py-2.5 px-2 text-xs text-right">{fmt(c.conversions)}</td>
                         <td className="py-2.5 px-3">
                           <Badge variant={c.status==="ENABLED"?"default":"secondary"}

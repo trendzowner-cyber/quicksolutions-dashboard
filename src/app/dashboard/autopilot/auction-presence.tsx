@@ -11,10 +11,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Swords, Upload, RefreshCw, TrendingUp, TrendingDown, Info } from "lucide-react";
+import { Swords, Upload, RefreshCw, TrendingUp, TrendingDown, Info, X, Search as SearchIcon, Download } from "lucide-react";
 import {
   BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
+import { dateShort } from "@/lib/format";
 
 interface PresenceSummary {
   domain: string;
@@ -84,6 +85,9 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
   const [importing, setImporting] = useState(false);
   const [drilldown, setDrilldown] = useState<DomainDrilldown | null>(null);
   const [drillLoading, setDrillLoading] = useState<string | null>(null);
+  const [drillSearch, setDrillSearch] = useState("");
+  const [drillShown, setDrillShown] = useState(25);
+  const [tableQuery, setTableQuery] = useState("");
 
   async function openDrilldown(domain: string) {
     if (drilldown?.domain === domain) {
@@ -92,6 +96,8 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
     }
     setDrillLoading(domain);
     setDrilldown(null);
+    setDrillSearch("");
+    setDrillShown(25);
     try {
       const res = await fetch(`/api/ads/auction/domain?domain=${encodeURIComponent(domain)}`);
       const data = await res.json();
@@ -102,6 +108,32 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
     } finally {
       setDrillLoading(null);
     }
+  }
+
+  // Escape closes the drilldown drawer.
+  useEffect(() => {
+    if (!drilldown) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setDrilldown(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [drilldown]);
+
+  function exportDrilldownCsv() {
+    if (!drilldown) return;
+    const esc = (v: string | number) => {
+      const s = String(v);
+      return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const header = ["Keyword", "Match", "Adgroep", "Campagne", "Dagen aanwezig", "Eerst gezien", "Laatst gezien"];
+    const lines = drilldown.keywords.map((k) =>
+      [k.text, k.matchType, k.adGroup, k.campaign, k.daysSeen, k.firstSeen, k.lastSeen].map(esc).join(";")
+    );
+    const blob = new Blob(["﻿" + [header.map(esc).join(";"), ...lines].join("\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `auction-${drilldown.domain}-${drilldown.windowEnd}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
   }
 
   const load = useCallback(async () => {
@@ -167,11 +199,11 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
 
   return (
     <div className="space-y-4">
-      {/* What's changing */}
+      {/* What's changing — max 3 insights, rest lives in the table */}
       {changes.length > 0 && (
         <div className="space-y-2">
           <h3 className="text-sm font-medium text-muted-foreground">Wat verandert er</h3>
-          {changes.map((c, i) => (
+          {changes.slice(0, 3).map((c, i) => (
             <div key={i} className={`flex items-start gap-3 rounded-lg border px-4 py-3 ${TONE_STYLE[c.tone]}`}>
               {c.tone === "warning" ? (
                 <TrendingDown className="h-4 w-4 mt-0.5 shrink-0 text-amber-400" />
@@ -211,25 +243,21 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
             </div>
           ) : (
             <>
-              <ResponsiveContainer width="100%" height={Math.max(200, chartData.length * 32)}>
-                <BarChart data={chartData} layout="vertical" margin={{ left: 80 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis type="number" domain={[0, 30]} tick={{ fontSize: 11 }} className="fill-muted-foreground" />
-                  <YAxis type="category" dataKey="domain" tick={{ fontSize: 11 }} className="fill-muted-foreground" width={120} />
-                  <Tooltip
-                    contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
-                    formatter={(value) => [`${Number(value)} van 30 dagen`, "Aanwezig"]}
+              {/* Searchable competitor table — the primary view */}
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1 max-w-xs">
+                  <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <input
+                    value={tableQuery}
+                    onChange={(e) => setTableQuery(e.target.value)}
+                    placeholder="Zoek domein…"
+                    className="w-full rounded-md border border-border bg-background pl-8 pr-3 py-1.5 text-sm"
                   />
-                  <Bar dataKey="dagen" radius={[0, 4, 4, 0]}>
-                    {chartData.map((c) => (
-                      <Cell
-                        key={c.domain}
-                        fill={c.status === "expanding" ? "#f59e0b" : c.status === "cooling" ? "#10b981" : c.status === "new" ? "#3b82f6" : "#6366f1"}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {(competitors ?? []).filter((c) => !tableQuery.trim() || c.domain.includes(tableQuery.trim().toLowerCase())).length} van {competitors.length} domeinen
+                </span>
+              </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -244,7 +272,9 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
                     </tr>
                   </thead>
                   <tbody>
-                    {competitors.map((c) => {
+                    {competitors
+                      .filter((c) => !tableQuery.trim() || c.domain.includes(tableQuery.trim().toLowerCase()))
+                      .map((c) => {
                       const st = STATUS_STYLE[c.status];
                       return (
                         <tr key={c.domain} className="border-b border-border/50 hover:bg-muted/20">
@@ -254,11 +284,11 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
                               className="font-medium text-left hover:text-brand underline-offset-2 hover:underline"
                               title="Toon welke keywords dit domein beconcurreert"
                             >
-                              {drillLoading === c.domain ? " laden…" : c.domain}
+                              {drillLoading === c.domain ? "laden…" : c.domain}
                             </button>
                           </td>
-                          <td className="py-2 pr-3 text-muted-foreground">{c.firstSeen}</td>
-                          <td className="py-2 pr-3 text-muted-foreground">{c.lastSeen}</td>
+                          <td className="py-2 pr-3 text-muted-foreground">{dateShort(c.firstSeen)}</td>
+                          <td className="py-2 pr-3 text-muted-foreground">{dateShort(c.lastSeen)}</td>
                           <td className="py-2 pr-3 text-right">{c.daysSeen30} / 30</td>
                           <td className="py-2 pr-3 text-xs text-muted-foreground max-w-56">
                             <span className="line-clamp-2" title={c.campaigns30.join(", ")}>
@@ -275,56 +305,35 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
                 </table>
               </div>
 
-              {drilldown && (
-                <div className="rounded-lg border border-brand/30 bg-brand/5 p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="font-medium text-sm">
-                      {drilldown.domain} — beconcurreert {drilldown.keywords.length} keyword{drilldown.keywords.length === 1 ? "" : "s"}
-                      <span className="text-xs text-muted-foreground font-normal ml-2">
-                        {drilldown.windowStart} → {drilldown.windowEnd}
-                      </span>
-                    </p>
-                    <Button size="sm" variant="ghost" onClick={() => setDrilldown(null)}>Sluit</Button>
-                  </div>
-                  {drilldown.note ? (
-                    <p className="text-xs text-muted-foreground">{drilldown.note}</p>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="text-left text-xs text-muted-foreground border-b border-border">
-                            <th className="py-1.5 pr-3">Keyword</th>
-                            <th className="py-1.5 pr-3">Match</th>
-                            <th className="py-1.5 pr-3">Adgroep</th>
-                            <th className="py-1.5 pr-3">Campagne</th>
-                            <th className="py-1.5 pr-3 text-right">Dagen</th>
-                            <th className="py-1.5">Laatst</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {drilldown.keywords.slice(0, 25).map((k) => (
-                            <tr key={`${k.text}|${k.adGroup}`} className="border-b border-border/40">
-                              <td className="py-1.5 pr-3 font-medium">{k.text}</td>
-                              <td className="py-1.5 pr-3 text-xs text-muted-foreground">{k.matchType}</td>
-                              <td className="py-1.5 pr-3 text-xs text-muted-foreground">{k.adGroup}</td>
-                              <td className="py-1.5 pr-3 text-xs text-muted-foreground max-w-48 truncate" title={k.campaign}>{k.campaign}</td>
-                              <td className="py-1.5 pr-3 text-right">{k.daysSeen}</td>
-                              <td className="py-1.5 text-xs text-muted-foreground">{k.lastSeen}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                      {drilldown.keywords.length > 25 && (
-                        <p className="text-xs text-muted-foreground pt-2">Top 25 van {drilldown.keywords.length} keywords.</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* Compact context chart — presence days are NOT impression share */}
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">
+                  Top {Math.min(8, chartData.length)} domeinen — aanwezige dagen van de laatste 30 (geen impression share)
+                </p>
+                <ResponsiveContainer width="100%" height={Math.min(240, Math.max(140, Math.min(8, chartData.length) * 28))}>
+                  <BarChart data={chartData.slice(0, 8)} layout="vertical" margin={{ left: 80 }}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                    <XAxis type="number" domain={[0, 30]} tick={{ fontSize: 11 }} className="fill-muted-foreground" label={{ value: "dagen", position: "insideBottomRight", fontSize: 10 }} />
+                    <YAxis type="category" dataKey="domain" tick={{ fontSize: 11 }} className="fill-muted-foreground" width={120} />
+                    <Tooltip
+                      contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
+                      formatter={(value) => [`${Number(value)} van 30 dagen`, "Aanwezig"]}
+                    />
+                    <Bar dataKey="dagen" radius={[0, 4, 4, 0]}>
+                      {chartData.slice(0, 8).map((c) => (
+                        <Cell
+                          key={c.domain}
+                          fill={c.status === "expanding" ? "#f59e0b" : c.status === "cooling" ? "#10b981" : c.status === "new" ? "#3b82f6" : "#6366f1"}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
 
               {coverage && (
                 <p className="text-xs text-muted-foreground border-t border-border pt-3">
-                  Dekking vanaf {coverage.coverageFrom ?? "—"} · {coverage.totalRows.toLocaleString("nl-BE")} waarnemingen
+                  Dekking vanaf {coverage.coverageFrom ? dateShort(coverage.coverageFrom) : "—"} · {coverage.totalRows.toLocaleString("nl-BE")} waarnemingen
                   {coverage.lastSyncAt && ` · laatste sync ${new Date(coverage.lastSyncAt).toLocaleString("nl-BE")}`}.
                   {" "}{coverage.note}
                 </p>
@@ -372,6 +381,106 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
           </CardContent>
         )}
       </Card>
+
+      {/* Drilldown drawer — adjacent panel, all keywords with search/export */}
+      {drilldown && (
+        <div
+          className="fixed inset-0 z-50 flex justify-end bg-black/40"
+          onClick={() => setDrilldown(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Keyword-drilldown ${drilldown.domain}`}
+        >
+          <div
+            className="h-full w-full max-w-2xl bg-card border-l border-border shadow-xl overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+            ref={(el) => el?.querySelector<HTMLInputElement>("input")?.focus()}
+          >
+            <div className="sticky top-0 bg-card border-b border-border px-5 py-4 flex items-start justify-between gap-3 z-10">
+              <div>
+                <p className="font-semibold">{drilldown.domain}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Beconcurreert {drilldown.keywords.length} keyword{drilldown.keywords.length === 1 ? "" : "s"} ·{" "}
+                  {dateShort(drilldown.windowStart)} → {dateShort(drilldown.windowEnd)}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" onClick={exportDrilldownCsv} disabled={!drilldown.keywords.length}>
+                  <Download className="h-4 w-4 mr-1" /> CSV ({drilldown.keywords.length})
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setDrilldown(null)} aria-label="Sluit drilldown">
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="px-5 py-4 space-y-3">
+              {drilldown.note ? (
+                <p className="text-xs text-muted-foreground">{drilldown.note}</p>
+              ) : (
+                <>
+                  <div className="relative">
+                    <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <input
+                      value={drillSearch}
+                      onChange={(e) => { setDrillSearch(e.target.value); setDrillShown(25); }}
+                      placeholder="Zoek in keywords, adgroepen, campagnes…"
+                      className="w-full rounded-md border border-border bg-background pl-8 pr-3 py-2 text-sm"
+                    />
+                  </div>
+                  {(() => {
+                    const q = drillSearch.trim().toLowerCase();
+                    const filtered = drilldown.keywords.filter((k) =>
+                      !q || k.text.toLowerCase().includes(q) || k.adGroup.toLowerCase().includes(q) || k.campaign.toLowerCase().includes(q)
+                    );
+                    const visibleRows = filtered.slice(0, drillShown);
+                    return (
+                      <>
+                        <p className="text-xs text-muted-foreground">
+                          {visibleRows.length} van {filtered.length} keywords{q ? ` (gefilterd uit ${drilldown.keywords.length})` : ""}
+                        </p>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead className="sticky top-0 bg-card">
+                              <tr className="text-left text-xs text-muted-foreground border-b border-border">
+                                <th className="py-1.5 pr-3">Keyword</th>
+                                <th className="py-1.5 pr-3">Match</th>
+                                <th className="py-1.5 pr-3">Adgroep</th>
+                                <th className="py-1.5 pr-3">Campagne</th>
+                                <th className="py-1.5 pr-3 text-right">Dagen</th>
+                                <th className="py-1.5">Laatst</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {visibleRows.map((k) => (
+                                <tr key={`${k.text}|${k.adGroup}`} className="border-b border-border/40">
+                                  <td className="py-1.5 pr-3 font-medium">{k.text}</td>
+                                  <td className="py-1.5 pr-3 text-xs text-muted-foreground">{k.matchType}</td>
+                                  <td className="py-1.5 pr-3 text-xs text-muted-foreground">{k.adGroup}</td>
+                                  <td className="py-1.5 pr-3 text-xs text-muted-foreground max-w-48 truncate" title={k.campaign}>{k.campaign}</td>
+                                  <td className="py-1.5 pr-3 text-right">{k.daysSeen}</td>
+                                  <td className="py-1.5 text-xs text-muted-foreground">{dateShort(k.lastSeen)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        {filtered.length > drillShown && (
+                          <div className="text-center pt-1">
+                            <Button size="sm" variant="outline" onClick={() => setDrillShown((n) => n + 50)}>
+                              Toon meer ({visibleRows.length} van {filtered.length})
+                            </Button>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

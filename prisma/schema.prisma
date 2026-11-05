@@ -534,6 +534,9 @@ model CompetitorAd {
   firstSeenAt  DateTime   @default(now())
   lastSeenAt   DateTime   @default(now())
   notified     Boolean    @default(false)
+  /** True when the ad arrived in the competitor's first-ever sync (imported
+      baseline), false when it was discovered later. Drives the "nieuw" badge. */
+  baseline     Boolean    @default(false)
 
   @@unique([competitorId, creativeId])
   @@index([competitorId, lastShown])

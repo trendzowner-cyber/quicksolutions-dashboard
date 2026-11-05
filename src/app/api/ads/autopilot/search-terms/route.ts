@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
       summary: {
         total: rows.length,
         waste: rows.filter((r) => r.verdict === "waste").length,
+        review: rows.filter((r) => r.verdict === "review").length,
         expensive: rows.filter((r) => r.verdict === "expensive").length,
         winners: rows.filter((r) => r.verdict === "winner").length,
         wasteCostMicros: wasteMicros,

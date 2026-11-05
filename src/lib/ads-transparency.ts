@@ -209,6 +209,9 @@ export async function storeAds(
   });
   const known = new Set(existing.map((a) => a.creativeId));
   const fresh = ads.filter((a) => !known.has(a.creativeId));
+  // The first pull for a competitor imports its whole visible history — that
+  // is a baseline, not "new" ads. Only discoveries after that count as new.
+  const isFirstSync = existing.length === 0;
 
   if (ads.length) {
     await db.competitorAd.createMany({
@@ -222,6 +225,7 @@ export async function storeAds(
         link: a.link,
         firstShown: a.firstShown ? new Date(a.firstShown) : null,
         lastShown: a.lastShown ? new Date(a.lastShown) : null,
+        baseline: isFirstSync,
       })),
       skipDuplicates: true,
     });

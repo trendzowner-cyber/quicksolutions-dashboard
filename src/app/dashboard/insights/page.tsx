@@ -135,21 +135,24 @@ export default function InsightsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {sources.map((s) => {
-                  const max = sources[0]?.count || 1;
-                  const pct = Math.round((s.count / max) * 100);
-                  return (
-                    <div key={s.source}>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="capitalize">{s.source || "direct"}</span>
-                        <span className="text-muted-foreground">{s.count}</span>
+                {(() => {
+                  const sorted = [...sources].sort((a, b) => b.count - a.count);
+                  const max = Math.max(...sorted.map((s) => s.count), 1);
+                  return sorted.map((s) => {
+                    const pct = Math.max(1, Math.round((s.count / max) * 100));
+                    return (
+                      <div key={s.source}>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="capitalize">{s.source || "direct"}</span>
+                          <span className="text-muted-foreground">{s.count.toLocaleString("nl-BE")} bezoeken</span>
+                        </div>
+                        <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-violet-500 rounded-full" style={{ width: `${pct}%` }} />
+                        </div>
                       </div>
-                      <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                        <div className="h-full bg-violet-500 rounded-full" style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  });
+                })()}
               </div>
             </CardContent>
           </Card>
@@ -171,8 +174,8 @@ export default function InsightsPage() {
                     ) : (
                       <Monitor className="h-8 w-8 mx-auto text-violet-400" />
                     )}
-                    <p className="text-lg font-bold mt-1">{d.count}</p>
-                    <p className="text-[10px] text-muted-foreground capitalize">{d.type || "other"}</p>
+                    <p className="text-lg font-bold mt-1">{d.count.toLocaleString("nl-BE")}</p>
+                    <p className="text-[10px] text-muted-foreground capitalize">{d.type || "other"} · sessies</p>
                   </div>
                 ))}
               </div>

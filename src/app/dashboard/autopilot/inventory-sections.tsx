@@ -15,6 +15,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import { eur } from "./search-terms-section";
+import { num } from "@/lib/format";
 
 const ACCOUNT_ID = "668-709-2345";
 
@@ -59,6 +60,7 @@ export function CampaignsSection({ dateRange }: { dateRange: string }) {
   const [campaigns, setCampaigns] = useState<CampaignRow[] | null>(null);
   const [isSeries, setIsSeries] = useState<ISPoint[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"ACTIVE" | "ALL">("ACTIVE");
 
   const load = useCallback(async () => {
     setError(null);
@@ -83,6 +85,10 @@ export function CampaignsSection({ dateRange }: { dateRange: string }) {
     "Verloren (rank)": d.lostRank !== null ? +(d.lostRank * 100).toFixed(1) : null,
     "Verloren (budget)": d.lostBudget !== null ? +(d.lostBudget * 100).toFixed(1) : null,
   }));
+
+  const visible = (campaigns ?? []).filter((c) =>
+    statusFilter === "ACTIVE" ? c.status === "ENABLED" : true
+  );
 
   return (
     <div className="space-y-4">
@@ -138,8 +144,26 @@ export function CampaignsSection({ dateRange }: { dateRange: string }) {
 
       {/* Campaign inventory */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Alle campagnes ({campaigns?.length ?? 0})</CardTitle>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+          <div>
+            <CardTitle className="text-lg">
+              Campagnes ({visible.length}{statusFilter === "ACTIVE" && campaigns ? ` actief · ${campaigns.length} totaal` : ""})
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              Metrics over {dateRange === "LAST_7_DAYS" ? "7" : "30"} dagen · account 668-709-2345
+            </p>
+          </div>
+          <div className="flex rounded-md border border-border overflow-hidden text-xs">
+            {(["ACTIVE", "ALL"] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setStatusFilter(f)}
+                className={`px-3 py-1.5 ${statusFilter === f ? "bg-primary text-primary-foreground" : "bg-transparent text-muted-foreground hover:bg-muted/40"}`}
+              >
+                {f === "ACTIVE" ? "Actief" : "Alles"}
+              </button>
+            ))}
+          </div>
         </CardHeader>
         <CardContent>
           {error && (
@@ -168,7 +192,7 @@ export function CampaignsSection({ dateRange }: { dateRange: string }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {campaigns.map((c) => (
+                  {visible.map((c) => (
                     <tr key={c.campaignId} className="border-b border-border/50 hover:bg-muted/20">
                       <td className="py-2 pr-3 font-medium max-w-72 truncate" title={c.name}>{c.name}</td>
                       <td className="py-2 pr-3 text-xs text-muted-foreground">
@@ -186,9 +210,11 @@ export function CampaignsSection({ dateRange }: { dateRange: string }) {
                       <td className="py-2 pr-3 text-right font-medium">{eur(c.costMicros)}</td>
                       <td className="py-2 pr-3 text-right">{c.clicks.toLocaleString("nl-BE")}</td>
                       <td className="py-2 pr-3 text-right">{c.impressions > 0 ? `${((c.clicks / c.impressions) * 100).toFixed(1)}%` : "—"}</td>
-                      <td className="py-2 pr-3 text-right">{c.conversions}</td>
+                      <td className="py-2 pr-3 text-right">{num(c.conversions)}</td>
                       <td className="py-2 pr-3 text-right">{c.conversions > 0 ? eur(c.costMicros / c.conversions) : "—"}</td>
-                      <td className="py-2 text-right">{c.costMicros > 0 && c.conversionsValue > 0 ? (c.conversionsValue / c.costMicros).toFixed(1) : "—"}</td>
+                      <td className="py-2 text-right" title={c.costMicros > 0 && c.conversionsValue === 0 ? "€0 conversiewaarde gemeten — of waardetracking staat uit" : undefined}>
+                        {c.costMicros > 0 ? (c.conversionsValue / (c.costMicros / 1_000_000)).toFixed(1).replace(".", ",") : "—"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

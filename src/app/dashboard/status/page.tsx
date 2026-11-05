@@ -91,21 +91,26 @@ export default function StatusPage() {
     return `${Math.floor(s / 3600)} uur geleden`;
   }
 
-  // Build a 24-slot strip: last 24 hours, oldest → newest
+  // Build a 24-slot strip: last 24 hours, oldest → newest.
+  // Match on floored hour, not exact ms equality — ISO strings with differing
+  // precision or timezone offsets otherwise never match and the strip renders
+  // blank even when 1,440 checks exist.
   function buildStrip(history: Monitor["history"]) {
+    const byHour = new Map<number, number>();
+    for (const h of history ?? []) {
+      const t = new Date(h.hour).getTime();
+      if (!Number.isNaN(t)) byHour.set(Math.floor(t / 3_600_000), h.pct);
+    }
     const slots: { label: string; pct: number | null }[] = [];
     const now = new Date();
     for (let i = 23; i >= 0; i--) {
       const hourStart = new Date(now);
       hourStart.setMinutes(0, 0, 0);
       hourStart.setHours(now.getHours() - i);
-      const bucket = history.find((h) => {
-        const d = new Date(h.hour);
-        return d.getTime() === hourStart.getTime();
-      });
+      const pct = byHour.get(Math.floor(hourStart.getTime() / 3_600_000)) ?? null;
       slots.push({
         label: hourStart.toLocaleTimeString("nl-BE", { hour: "2-digit", minute: "2-digit" }),
-        pct: bucket ? bucket.pct : null,
+        pct,
       });
     }
     return slots;
@@ -189,19 +194,27 @@ export default function StatusPage() {
                 </div>
 
                 {/* 24-hour strip */}
-                <div className="flex items-end gap-[2px] h-12">
-                  {slots.map((s, i) => (
-                    <div
-                      key={i}
-                      title={`${s.label} — ${s.pct === null ? "geen data" : s.pct + "% up"}`}
-                      className={`flex-1 rounded-sm ${stripColor(s.pct)}`}
-                    />
-                  ))}
-                </div>
-                <div className="flex justify-between text-[10px] text-muted-foreground">
-                  <span>24 uur geleden</span>
-                  <span>nu</span>
-                </div>
+                {slots.every((s) => s.pct === null) ? (
+                  <p className="text-xs text-muted-foreground rounded-lg border border-dashed border-border px-3 py-4 text-center">
+                    Geen uur-data beschikbaar voor de afgelopen 24 uur — de uptime-monitor schrijft mogelijk nog geen historiek.
+                  </p>
+                ) : (
+                  <>
+                    <div className="flex items-end gap-[2px] h-12">
+                      {slots.map((s, i) => (
+                        <div
+                          key={i}
+                          title={`${s.label} — ${s.pct === null ? "geen data" : s.pct + "% up"}`}
+                          className={`flex-1 rounded-sm ${stripColor(s.pct)} ${s.pct === null ? "h-2 self-center" : "h-full"}`}
+                        />
+                      ))}
+                    </div>
+                    <div className="flex justify-between text-[10px] text-muted-foreground">
+                      <span>24 uur geleden</span>
+                      <span>nu</span>
+                    </div>
+                  </>
+                )}
 
                 {m.status === "down" && (
                   <div className="flex items-start gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-400">

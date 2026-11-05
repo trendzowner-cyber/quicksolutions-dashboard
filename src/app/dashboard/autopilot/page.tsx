@@ -25,6 +25,7 @@ import { CampaignsSection, KeywordsSection, NegativesSection } from "./inventory
 import { AuctionPresenceSection } from "./auction-presence";
 import { AdsSection } from "./ads-section";
 import { ConversionsSection } from "./conversions-section";
+import { MiniMarkdown } from "@/components/ui/mini-markdown";
 
 // ─── Types (mirror of src/lib/ads-autopilot.ts, ads-audit.ts, ads-auction.ts) ───
 
@@ -86,11 +87,11 @@ interface Competitor {
 
 const ACCOUNT_ID = "668-709-2345";
 
-const SEVERITY_STYLE: Record<string, { icon: React.ElementType; cls: string; label: string }> = {
-  critical: { icon: XCircle, cls: "border-red-500/30 bg-red-500/5", label: "Kritiek" },
-  warning: { icon: AlertCircle, cls: "border-amber-500/30 bg-amber-500/5", label: "Let op" },
-  ok: { icon: CheckCircle2, cls: "border-emerald-500/30 bg-emerald-500/5", label: "OK" },
-  unavailable: { icon: Info, cls: "border-border bg-muted/20", label: "Niet meetbaar" },
+const SEVERITY_STYLE: Record<string, { icon: React.ElementType; cls: string; badgeCls: string; label: string }> = {
+  critical: { icon: XCircle, cls: "border-red-500/30 bg-red-500/5", badgeCls: "border-red-500/40 bg-red-500/10 text-red-600 dark:text-red-400", label: "Kritiek" },
+  warning: { icon: AlertCircle, cls: "border-amber-500/30 bg-amber-500/5", badgeCls: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400", label: "Let op" },
+  ok: { icon: CheckCircle2, cls: "border-emerald-500/30 bg-emerald-500/5", badgeCls: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400", label: "OK" },
+  unavailable: { icon: Info, cls: "border-border bg-muted/20", badgeCls: "border-border bg-muted/40 text-muted-foreground", label: "Niet meetbaar" },
 };
 
 const COMP_STATUS: Record<string, { label: string; cls: string }> = {
@@ -199,11 +200,11 @@ export default function AutopilotPage() {
     setSelected(new Set());
   }
 
-  const wasteTerms = (terms ?? []).filter((t) => t.verdict === "waste" || t.verdict === "expensive");
+  const wasteTerms = (terms ?? []).filter((t) => t.verdict === "waste" || t.verdict === "review" || t.verdict === "expensive");
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header — compact account/date/freshness context */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Radar className="h-7 w-7 text-brand" />
@@ -211,6 +212,9 @@ export default function AutopilotPage() {
             <h1 className="text-2xl font-bold">Ads Autopilot</h1>
             <p className="text-sm text-muted-foreground">
               Vind verspilling, audit je account, volg concurrenten — jij beslist, de tool voert uit.
+            </p>
+            <p className="text-xs text-muted-foreground/70 mt-0.5">
+              Account 668-709-2345 · periode: {dateRange === "LAST_7_DAYS" ? "7" : dateRange === "LAST_90_DAYS" ? "90" : "30"} dagen · Google Ads API v23 · tijdzone account (Europe/Brussels)
             </p>
           </div>
         </div>
@@ -243,37 +247,9 @@ export default function AutopilotPage() {
         </div>
       )}
 
-      {/* 30-day chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Spend &amp; conversies — 30 dagen</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading || !days ? (
-            <Skeleton className="h-56 w-full" />
-          ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <ComposedChart data={days}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
-                <YAxis yAxisId="left" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
-                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
-                <Tooltip
-                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
-                  formatter={(value, name) =>
-                    name === "spend" ? [`€${Number(value).toFixed(2)}`, "Spend"] : [value, name === "conversions" ? "Conversies" : "Kliks"]
-                  }
-                />
-                <Area yAxisId="left" type="monotone" dataKey="spend" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.15} name="spend" />
-                <Line yAxisId="right" type="monotone" dataKey="conversions" stroke="#10b981" strokeWidth={2} dot={false} name="conversions" />
-              </ComposedChart>
-            </ResponsiveContainer>
-          )}
-        </CardContent>
-      </Card>
-
       <Tabs defaultValue="optimalisatie">
-        <TabsList className="h-10 flex-wrap">
+        <div className="sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 py-2 -mx-1 px-1">
+          <TabsList className="h-10 flex-wrap">
           <TabsTrigger value="optimalisatie" className="gap-2 text-sm">
             <Radar className="h-4 w-4" /> Optimalisatie
           </TabsTrigger>
@@ -301,7 +277,8 @@ export default function AutopilotPage() {
           <TabsTrigger value="concurrentie" className="gap-2 text-sm">
             <Swords className="h-4 w-4" /> Concurrentie
           </TabsTrigger>
-        </TabsList>
+          </TabsList>
+        </div>
 
         {/* ═══ TAB 1: optimization (waste finder, budgets, keywords) ═══ */}
         <TabsContent value="optimalisatie" className="mt-4 space-y-6">
@@ -349,6 +326,44 @@ export default function AutopilotPage() {
             </Card>
           </div>
 
+          {/* Spend & conversions chart — lives in the overview tab now, with
+              legend and units so it does not dominate every other tab. */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">
+                Spend &amp; conversies — {dateRange === "LAST_7_DAYS" ? "7" : dateRange === "LAST_90_DAYS" ? "90" : "30"} dagen
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading || !days ? (
+                <Skeleton className="h-56 w-full" />
+              ) : (
+                <>
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2">
+                    <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-4 rounded bg-[#f59e0b]" /> Spend (€, links)</span>
+                    <span className="flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 bg-[#10b981]" /> Conversies (aantal, rechts)</span>
+                  </div>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <ComposedChart data={days}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis dataKey="date" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
+                      <YAxis yAxisId="left" tick={{ fontSize: 11 }} className="fill-muted-foreground" tickFormatter={(v) => `€${v}`} />
+                      <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
+                      <Tooltip
+                        contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
+                        formatter={(value, name) =>
+                          name === "spend" ? [`€${Number(value).toFixed(2)}`, "Spend"] : [value, name === "conversions" ? "Conversies" : "Kliks"]
+                        }
+                      />
+                      <Area yAxisId="left" type="monotone" dataKey="spend" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.15} name="spend" />
+                      <Line yAxisId="right" type="monotone" dataKey="conversions" stroke="#10b981" strokeWidth={2} dot={false} name="conversions" />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Waste finder */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -365,6 +380,11 @@ export default function AutopilotPage() {
               </Button>
             </CardHeader>
             <CardContent>
+              <p className="text-xs text-muted-foreground mb-3">
+                Regels: <strong>Verspilling</strong> = ≥ €25 zonder conversie · <strong>Beoordelen</strong> = €10–25 zonder conversie
+                (conversies kunnen nog binnenkomen) · <strong>Duur</strong> = CPA &gt; 2× campagne-gemiddelde ·
+                window = gekozen periode.
+              </p>
               {loading ? (
                 <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
               ) : !wasteTerms.length ? (
@@ -671,7 +691,7 @@ export default function AutopilotPage() {
 function AuditSection({ showToast }: { showToast: (m: string) => void }) {
   const [findings, setFindings] = useState<Finding[] | null>(null);
   const [narrative, setNarrative] = useState<string | null>(null);
-  const [summary, setSummary] = useState<{ critical: number; warning: number; ok: number } | null>(null);
+  const [summary, setSummary] = useState<{ critical: number; warning: number; ok: number; unavailable?: number } | null>(null);
   const [running, setRunning] = useState(false);
   const [withNarrative, setWithNarrative] = useState(true);
 
@@ -724,7 +744,7 @@ function AuditSection({ showToast }: { showToast: (m: string) => void }) {
       </Card>
 
       {summary && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card><CardContent className="pt-5">
             <p className="text-2xl font-bold text-red-400">{summary.critical}</p>
             <p className="text-xs text-muted-foreground mt-1">Kritieke bevindingen</p>
@@ -737,6 +757,10 @@ function AuditSection({ showToast }: { showToast: (m: string) => void }) {
             <p className="text-2xl font-bold text-emerald-400">{summary.ok}</p>
             <p className="text-xs text-muted-foreground mt-1">In orde</p>
           </CardContent></Card>
+          <Card><CardContent className="pt-5">
+            <p className="text-2xl font-bold text-muted-foreground">{summary.unavailable ?? 0}</p>
+            <p className="text-xs text-muted-foreground mt-1">Overgeslagen (niet meetbaar — telt niet mee als OK)</p>
+          </CardContent></Card>
         </div>
       )}
 
@@ -748,7 +772,7 @@ function AuditSection({ showToast }: { showToast: (m: string) => void }) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="prose-sm text-sm whitespace-pre-wrap leading-relaxed">{narrative}</div>
+            <MiniMarkdown text={narrative} />
           </CardContent>
         </Card>
       )}
@@ -767,7 +791,7 @@ function AuditSection({ showToast }: { showToast: (m: string) => void }) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-medium">{f.title}</p>
-                    <Badge className={s.cls}>{s.label}</Badge>
+                    <Badge className={s.badgeCls}>{s.label}</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">{f.detail}</p>
                   {f.stats && (
@@ -802,8 +826,8 @@ function AuditSection({ showToast }: { showToast: (m: string) => void }) {
 function CompetitorSection({ showToast }: { showToast: (m: string) => void }) {
   return (
     <div className="space-y-4">
-      <CompetitorTracker showToast={showToast} />
       <AuctionPresenceSection showToast={showToast} />
+      <CompetitorTracker showToast={showToast} />
     </div>
   );
 }

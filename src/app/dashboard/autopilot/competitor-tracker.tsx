@@ -10,7 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Eye, Plus, RefreshCw, Trash2, ExternalLink } from "lucide-react";
+import { Eye, Plus, RefreshCw, Trash2, ExternalLink, ImageOff } from "lucide-react";
+import { dateShort } from "@/lib/format";
 
 interface TrackedAd {
   id: string;
@@ -22,6 +23,7 @@ interface TrackedAd {
   firstShown: string | null;
   lastShown: string | null;
   firstSeenAt: string;
+  baseline: boolean;
 }
 
 interface TrackedCompetitor {
@@ -43,7 +45,13 @@ const FORMAT_STYLE: Record<string, { label: string; cls: string }> = {
 const NEW_WINDOW_MS = 48 * 3600 * 1000;
 
 function isNew(ad: TrackedAd): boolean {
-  return Date.now() - new Date(ad.firstSeenAt).getTime() < NEW_WINDOW_MS;
+  // Baseline ads came in with the first import — they are not "new", even
+  // though their firstSeenAt is recent by definition.
+  return !ad.baseline && Date.now() - new Date(ad.firstSeenAt).getTime() < NEW_WINDOW_MS;
+}
+
+function proxied(url: string): string {
+  return `/api/ads/creative-preview?url=${encodeURIComponent(url)}`;
 }
 
 export function CompetitorTracker({ showToast }: { showToast: (m: string) => void }) {
@@ -52,6 +60,8 @@ export function CompetitorTracker({ showToast }: { showToast: (m: string) => voi
   const [adding, setAdding] = useState(false);
   const [busyDomain, setBusyDomain] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [shownCounts, setShownCounts] = useState<Record<string, number>>({});
+  const [brokenPreviews, setBrokenPreviews] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     try {
@@ -219,51 +229,66 @@ export function CompetitorTracker({ showToast }: { showToast: (m: string) => voi
                       {!c.ads.length ? (
                         <p className="text-sm text-muted-foreground py-2">Geen advertenties opgeslagen.</p>
                       ) : (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          {c.ads.slice(0, 24).map((a) => {
-                            const f = FORMAT_STYLE[a.format] ?? FORMAT_STYLE.unknown;
-                            return (
-                              <a
-                                key={a.id}
-                                href={a.link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="group rounded-lg border border-border overflow-hidden hover:border-brand/50 transition-colors"
+                        <>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {c.ads.slice(0, shownCounts[c.domain] ?? 12).map((a) => {
+                              const f = FORMAT_STYLE[a.format] ?? FORMAT_STYLE.unknown;
+                              const broken = brokenPreviews.has(a.id);
+                              return (
+                                <a
+                                  key={a.id}
+                                  href={a.link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="group rounded-lg border border-border overflow-hidden hover:border-brand/50 transition-colors"
+                                >
+                                  <div className="aspect-square bg-muted/30 flex items-center justify-center overflow-hidden">
+                                    {a.previewUrl && !broken ? (
+                                      // eslint-disable-next-line @next/next/no-img-element
+                                      <img
+                                        src={proxied(a.previewUrl)}
+                                        alt={`${a.format} advertentie van ${c.domain}`}
+                                        className="h-full w-full object-contain"
+                                        loading="lazy"
+                                        onError={() =>
+                                          setBrokenPreviews((prev) => new Set(prev).add(a.id))
+                                        }
+                                      />
+                                    ) : (
+                                      <div className="text-xs text-muted-foreground text-center px-3 py-6">
+                                        <ImageOff className="h-4 w-4 mx-auto mb-1" />
+                                        Geen preview — open bij Google
+                                        <ExternalLink className="h-3 w-3 mx-auto mt-1 opacity-60" />
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="px-2 py-1.5 flex items-center gap-1 flex-wrap">
+                                    <Badge className={f.cls}>{f.label}</Badge>
+                                    {isNew(a) && (
+                                      <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30">nieuw</Badge>
+                                    )}
+                                    <span className="text-[10px] text-muted-foreground ml-auto">
+                                      {a.lastShown ? `t/m ${dateShort(a.lastShown)}` : ""}
+                                    </span>
+                                  </div>
+                                </a>
+                              );
+                            })}
+                          </div>
+                          {c.ads.length > (shownCounts[c.domain] ?? 12) && (
+                            <div className="pt-3 text-center">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  setShownCounts((prev) => ({ ...prev, [c.domain]: (prev[c.domain] ?? 12) + 24 }))
+                                }
                               >
-                                <div className="aspect-square bg-muted/30 flex items-center justify-center overflow-hidden">
-                                  {a.previewUrl ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img
-                                      src={a.previewUrl}
-                                      alt={`${a.format} advertentie van ${c.domain}`}
-                                      className="h-full w-full object-contain"
-                                      loading="lazy"
-                                    />
-                                  ) : (
-                                    <div className="text-xs text-muted-foreground text-center px-2">
-                                      <ExternalLink className="h-4 w-4 mx-auto mb-1" />
-                                      Open preview bij Google
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="px-2 py-1.5 flex items-center gap-1 flex-wrap">
-                                  <Badge className={f.cls}>{f.label}</Badge>
-                                  {isNew(a) && (
-                                    <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30">nieuw</Badge>
-                                  )}
-                                  <span className="text-[10px] text-muted-foreground ml-auto">
-                                    {a.lastShown ? `t/m ${a.lastShown}` : ""}
-                                  </span>
-                                </div>
-                              </a>
-                            );
-                          })}
-                        </div>
-                      )}
-                      {c.ads.length > 24 && (
-                        <p className="text-xs text-muted-foreground pt-2">
-                          Nieuwste 24 van {c.ads.length} getoond.
-                        </p>
+                                Toon meer ({(shownCounts[c.domain] ?? 12)} van {c.ads.length})
+                              </Button>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   )}

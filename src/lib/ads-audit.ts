@@ -336,7 +336,7 @@ async function checkGeoLeak(accessToken: string, customerId: string): Promise<Fi
     if (foreign > 5_000_000) {
       return {
         id, severity: share > 0.05 ? "critical" : "warning", title, stats,
-        detail: `${eur(foreign)} (${pct(share)}) van de spend komt van buiten België. Voor een lokale reparatiewinkel is dat vrijwel altijd verspilling — check de targeting-instelling "presence or interest".`,
+        detail: `${eur(foreign)} (${pct(share)}) van de spend komt van buiten België. Controleer eerst of die spend converteert; zo niet, dan is de targeting-instelling "presence or interest" de waarschijnlijke oorzaak.`,
       };
     }
     return ok(id, title, `Vrijwel alle spend (${pct(1 - share)}) blijft binnen België.`);
@@ -385,7 +385,7 @@ async function checkQualityScore(accessToken: string, customerId: string): Promi
     if (share > 0.15) {
       return {
         id, severity: share > 0.4 ? "critical" : "warning", title, stats,
-        detail: `${pct(share)} van de keyword-spend zit op Quality Score ≤ 3 — je overbetaalt per klik. Ergste: ${worst.slice(0, 3).map((w) => `"${w.text}" (QS ${w.qs}, ${eur(w.cost)})`).join(", ")}.`,
+        detail: `${pct(share)} van de keyword-spend zit op Quality Score ≤ 3. Lage QS correleert met duurdere kliks — controleer advertentierelevantie en landingspagina-ervaring voor: ${worst.slice(0, 3).map((w) => `"${w.text}" (QS ${w.qs}, ${eur(w.cost)})`).join(", ")}.`,
       };
     }
     return ok(id, title, `Slechts ${pct(share)} van de spend zit op lage Quality Scores.`);
@@ -406,7 +406,7 @@ async function checkBrandInPmax(accessToken: string, customerId: string): Promis
       WHERE campaign.advertising_channel_type = 'PERFORMANCE_MAX'
         AND segments.date DURING LAST_30_DAYS
     `);
-    if (!rows.length) return ok(id, title, "Geen PMax-zoektermen-data in deze periode.");
+    if (!rows.length) return unavailable(id, title);
 
     const brand = rows.filter((r) => {
       const st = (r.searchTermView ?? r.search_term_view ?? {}) as Record<string, unknown>;
@@ -452,7 +452,8 @@ async function checkDeviceSplit(accessToken: string, customerId: string): Promis
     const total = Object.values(byDevice).reduce((s, d) => s + d.cost, 0);
     const stats: Record<string, string> = {};
     for (const [d, v] of Object.entries(byDevice)) {
-      stats[d] = `${eur(v.cost)} (${total > 0 ? pct(v.cost / total) : "—"}) · ${v.conv} conv.`;
+      const convFmt = v.conv.toLocaleString("nl-BE", { maximumFractionDigits: 2 });
+      stats[d] = `${eur(v.cost)} (${total > 0 ? pct(v.cost / total) : "—"}) · ${convFmt} conv.`;
     }
     const mobile = byDevice["MOBILE"]?.cost ?? 0;
     const detail = total > 0 && mobile / total > 0.6

@@ -54,7 +54,7 @@ export async function PATCH(
       db.task
         .create({
           data: {
-            title: `Review: ${before.reviewerName} (${before.starRating}★)`,
+            title: `Review: ${before.reviewerName} (${before.starRating > 0 ? `${before.starRating}★` : "score onbekend"})`,
             description: before.comment?.slice(0, 200) ?? "Gerapporteerde review opvolgen",
             category: "reviews",
             status: "todo",

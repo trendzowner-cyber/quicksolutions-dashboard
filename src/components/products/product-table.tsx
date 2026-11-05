@@ -81,13 +81,16 @@ function InlineEdit({
   }
 
   if (!editing) {
+    const display = type === "select" && options
+      ? (options.find((o) => o.value === value)?.label ?? value)
+      : value;
     return (
       <span
         className="cursor-pointer hover:underline decoration-dotted underline-offset-2"
         onClick={() => setEditing(true)}
         title="Klik om te bewerken"
       >
-        {value || "—"}
+        {display || "—"}
       </span>
     );
   }

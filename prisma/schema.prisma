@@ -485,3 +485,21 @@ model TelegramState {
   lastUpdateId BigInt   @default(0)
   updatedAt    DateTime @updatedAt
 }
+
+// Auction insights presence tracker. The Google Ads API gates auction-insight
+// metrics behind a closed allowlist, so the rows come from CSV exports the
+// user downloads in the Google Ads UI and drops into /dashboard/autopilot.
+// One row per (day, campaign, domain) — presence, not performance: Google
+// never shares competitor numbers.
+model AuctionSnapshot {
+  id         String   @id @default(cuid())
+  pulledOn   DateTime @db.Date
+  campaignId String   @default("account")
+  domain     String
+  source     String   @default("csv")
+  createdAt  DateTime @default(now())
+
+  @@unique([pulledOn, campaignId, domain])
+  @@index([domain])
+  @@index([pulledOn])
+}

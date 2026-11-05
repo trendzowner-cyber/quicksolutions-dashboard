@@ -10,7 +10,7 @@ import {
   Radar, Trash2, TrendingUp, TrendingDown, Minus, Sparkles,
   PauseCircle, Wallet, RefreshCw, CheckCircle2, AlertTriangle,
   ClipboardCheck, Swords, Upload, XCircle, AlertCircle, Info,
-  Search as SearchIcon, KeyRound, Layers, Ban,
+  Search as SearchIcon, KeyRound, Layers, Ban, Megaphone, Target,
 } from "lucide-react";
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -23,6 +23,8 @@ import {
 import { CompetitorTracker } from "./competitor-tracker";
 import { CampaignsSection, KeywordsSection, NegativesSection } from "./inventory-sections";
 import { AuctionPresenceSection } from "./auction-presence";
+import { AdsSection } from "./ads-section";
+import { ConversionsSection } from "./conversions-section";
 
 // ─── Types (mirror of src/lib/ads-autopilot.ts, ads-audit.ts, ads-auction.ts) ───
 
@@ -286,6 +288,12 @@ export default function AutopilotPage() {
           </TabsTrigger>
           <TabsTrigger value="negatieven" className="gap-2 text-sm">
             <Ban className="h-4 w-4" /> Negatieven
+          </TabsTrigger>
+          <TabsTrigger value="advertenties" className="gap-2 text-sm">
+            <Megaphone className="h-4 w-4" /> Advertenties
+          </TabsTrigger>
+          <TabsTrigger value="conversies" className="gap-2 text-sm">
+            <Target className="h-4 w-4" /> Conversies
           </TabsTrigger>
           <TabsTrigger value="audit" className="gap-2 text-sm">
             <ClipboardCheck className="h-4 w-4" /> Account Audit
@@ -620,12 +628,26 @@ export default function AutopilotPage() {
           />
         </TabsContent>
 
-        {/* ═══ TAB 6: account audit ═══ */}
+        {/* ═══ TAB 6: ad variants (RSA editor) ═══ */}
+        <TabsContent value="advertenties" className="mt-4">
+          <AdsSection
+            dateRange={dateRange === "LAST_90_DAYS" ? "LAST_30_DAYS" : dateRange}
+            busy={busy}
+            onAction={(body, key) => applyAction(body, key)}
+          />
+        </TabsContent>
+
+        {/* ═══ TAB 7: conversion tracking ═══ */}
+        <TabsContent value="conversies" className="mt-4">
+          <ConversionsSection />
+        </TabsContent>
+
+        {/* ═══ TAB 8: account audit ═══ */}
         <TabsContent value="audit" className="mt-4">
           <AuditSection showToast={showToast} />
         </TabsContent>
 
-        {/* ═══ TAB 7: competitors ═══ */}
+        {/* ═══ TAB 9: competitors ═══ */}
         <TabsContent value="concurrentie" className="mt-4">
           <CompetitorSection showToast={showToast} />
         </TabsContent>

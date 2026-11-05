@@ -7,6 +7,7 @@ import {
   setCampaignBudget,
 } from "@/lib/ads-autopilot";
 import { removeNegative } from "@/lib/ads-inventory";
+import { updateRsaTexts, setAdStatus } from "@/lib/ads-creative";
 
 export const maxDuration = 60;
 
@@ -82,6 +83,23 @@ export async function POST(request: NextRequest) {
       }
       await removeNegative(customerId, resourceName);
       summary = `Negatief keyword verwijderd (blokkade opgeheven): ${String(body.label ?? resourceName)}`;
+    } else if (type === "update_ad_texts") {
+      const adResourceName = String(body.adResourceName ?? "");
+      const headlines = Array.isArray(body.headlines) ? body.headlines.map(String).filter((h) => h.trim()) : [];
+      const descriptions = Array.isArray(body.descriptions) ? body.descriptions.map(String).filter((d) => d.trim()) : [];
+      if (!adResourceName.includes("/adGroupAds/")) {
+        return NextResponse.json({ error: "Ongeldige adResourceName" }, { status: 400 });
+      }
+      await updateRsaTexts(customerId, adResourceName, { headlines, descriptions });
+      summary = `Advertentieteksten aangepast: ${String(body.label ?? adResourceName)} (${headlines.length} headlines, ${descriptions.length} descriptions)`;
+    } else if (type === "set_ad_status") {
+      const adResourceName = String(body.adResourceName ?? "");
+      const status = body.status === "ENABLED" ? "ENABLED" : "PAUSED";
+      if (!adResourceName.includes("/adGroupAds/")) {
+        return NextResponse.json({ error: "Ongeldige adResourceName" }, { status: 400 });
+      }
+      await setAdStatus(customerId, adResourceName, status);
+      summary = `Advertentie ${status === "PAUSED" ? "gepauzeerd" : "geactiveerd"}: ${String(body.label ?? adResourceName)}`;
     } else {
       return NextResponse.json({ error: `Onbekend actietype: ${type}` }, { status: 400 });
     }

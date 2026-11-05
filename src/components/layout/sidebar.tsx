@@ -25,6 +25,7 @@ import {
   HeartPulse,
   Star,
   HardHat,
+  Radar,
 } from "lucide-react";
 
 const baseItems = [
@@ -39,6 +40,7 @@ const baseItems = [
   { href: "/dashboard/paginas", label: "Pagina's", icon: File, color: "text-rose-400" },
   { href: "/dashboard/taken", label: "Taken", icon: ListChecks, color: "text-cyan-400" },
   { href: "/dashboard/marketing", label: "Marketing", icon: Megaphone, color: "text-pink-400" },
+  { href: "/dashboard/autopilot", label: "Ads Autopilot", icon: Radar, color: "text-brand" },
   { href: "/dashboard/audit", label: "SEO Audit", icon: SearchCheck, color: "text-orange-400" },
 ];
 

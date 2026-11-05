@@ -9,6 +9,7 @@ export type ActivityType =
   | "uptime_down"
   | "uptime_up"
   | "ads_digest"
+  | "ads_autopilot"
   | "briefing"
   | "task_created_telegram"
   | "task_assigned"

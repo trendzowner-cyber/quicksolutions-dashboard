@@ -37,6 +37,7 @@ const publicPaths = [
   "/api/telegram/webhook",
   "/api/notify/uptime",
   "/api/ads/digest",
+  "/api/ads/autopilot/monitor",
   "/api/tasks/sweep",
   "/api/tasks/briefing",
 ];

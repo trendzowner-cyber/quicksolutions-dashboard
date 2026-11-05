@@ -503,3 +503,38 @@ model AuctionSnapshot {
   @@index([domain])
   @@index([pulledOn])
 }
+
+// ─── Competitor ad tracker (Google Ads Transparency Center) ───
+// See src/lib/ads-transparency.ts — public EU ad data, no API key needed.
+
+model Competitor {
+  id           String         @id @default(cuid())
+  domain       String         @unique
+  advertiserId String?
+  name         String?
+  adCount      Int            @default(0)
+  lastSyncedAt DateTime?
+  createdAt    DateTime       @default(now())
+
+  ads          CompetitorAd[]
+}
+
+model CompetitorAd {
+  id           String     @id @default(cuid())
+  competitorId String
+  competitor   Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  creativeId   String
+  advertiserId String
+  advertiser   String     @default("")
+  format       String     @default("unknown") // text | image | video
+  previewUrl   String?
+  link         String     @default("")
+  firstShown   DateTime?  @db.Date
+  lastShown    DateTime?  @db.Date
+  firstSeenAt  DateTime   @default(now())
+  lastSeenAt   DateTime   @default(now())
+  notified     Boolean    @default(false)
+
+  @@unique([competitorId, creativeId])
+  @@index([competitorId, lastShown])
+}

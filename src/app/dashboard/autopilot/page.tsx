@@ -10,28 +10,19 @@ import {
   Radar, Trash2, TrendingUp, TrendingDown, Minus, Sparkles,
   PauseCircle, Wallet, RefreshCw, CheckCircle2, AlertTriangle,
   ClipboardCheck, Swords, Upload, XCircle, AlertCircle, Info,
+  Search as SearchIcon,
 } from "lucide-react";
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, BarChart, Bar, Cell,
 } from "recharts";
+import {
+  SearchTermsSection, VERDICT_STYLE, AI_STYLE, eur,
+  type SearchTermRow,
+} from "./search-terms-section";
+import { CompetitorTracker } from "./competitor-tracker";
 
 // ─── Types (mirror of src/lib/ads-autopilot.ts, ads-audit.ts, ads-auction.ts) ───
-
-interface SearchTermRow {
-  term: string;
-  campaignId: string;
-  campaignName: string;
-  adGroupName: string;
-  impressions: number;
-  clicks: number;
-  costMicros: number;
-  conversions: number;
-  verdict: "waste" | "expensive" | "low_ctr" | "winner" | "neutral";
-  reason: string;
-  aiVerdict?: "relevant" | "irrelevant" | "brand" | null;
-  aiReason?: string | null;
-}
 
 interface BudgetAdvice {
   campaignId: string;
@@ -86,22 +77,6 @@ interface Competitor {
 }
 
 const ACCOUNT_ID = "668-709-2345";
-const eur = (micros: number) =>
-  `€${(micros / 1_000_000).toLocaleString("nl-BE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-const VERDICT_STYLE: Record<string, { label: string; cls: string }> = {
-  waste: { label: "Verspilling", cls: "bg-red-500/15 text-red-400 border-red-500/30" },
-  expensive: { label: "Duur", cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
-  low_ctr: { label: "Lage CTR", cls: "bg-orange-500/15 text-orange-400 border-orange-500/30" },
-  winner: { label: "Winnaar", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
-  neutral: { label: "OK", cls: "bg-muted/40 text-muted-foreground border-border" },
-};
-
-const AI_STYLE: Record<string, { label: string; cls: string }> = {
-  irrelevant: { label: "AI: irrelevant", cls: "bg-red-500/15 text-red-400 border-red-500/30" },
-  relevant: { label: "AI: relevant", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
-  brand: { label: "AI: merk", cls: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
-};
 
 const SEVERITY_STYLE: Record<string, { icon: React.ElementType; cls: string; label: string }> = {
   critical: { icon: XCircle, cls: "border-red-500/30 bg-red-500/5", label: "Kritiek" },
@@ -135,9 +110,18 @@ export default function AutopilotPage() {
     if (withAi) setAiLoading(true); else setLoading(true);
     setError(null);
     try {
-      const q = `accountId=${ACCOUNT_ID}&dateRange=${dateRange}`;
+      // GAQL has no LAST_90_DAYS preset — the API route takes start/end instead.
+      let stRange = `dateRange=${dateRange}`;
+      let otherRange = dateRange;
+      if (dateRange === "LAST_90_DAYS") {
+        const end = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+        const start = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
+        stRange = `start=${start}&end=${end}`;
+        otherRange = "LAST_30_DAYS";
+      }
+      const q = `accountId=${ACCOUNT_ID}&dateRange=${otherRange}`;
       const [st, bg, kw, ts] = await Promise.all([
-        fetch(`/api/ads/autopilot/search-terms?${q}${withAi ? "&ai=1" : ""}`).then((r) => r.json()),
+        fetch(`/api/ads/autopilot/search-terms?accountId=${ACCOUNT_ID}&${stRange}${withAi ? "&ai=1" : ""}`).then((r) => r.json()),
         fetch(`/api/ads/autopilot/budgets?${q}`).then((r) => r.json()),
         fetch(`/api/ads/autopilot/keywords?${q}`).then((r) => r.json()),
         fetch(`/api/ads/autopilot/timeseries?accountId=${ACCOUNT_ID}`).then((r) => r.json()),
@@ -228,6 +212,7 @@ export default function AutopilotPage() {
           >
             <option value="LAST_7_DAYS">Laatste 7 dagen</option>
             <option value="LAST_30_DAYS">Laatste 30 dagen</option>
+            <option value="LAST_90_DAYS">Laatste 90 dagen</option>
           </select>
           <Button variant="outline" size="sm" onClick={() => load(false)} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`} /> Vernieuwen
@@ -281,6 +266,9 @@ export default function AutopilotPage() {
         <TabsList className="h-10">
           <TabsTrigger value="optimalisatie" className="gap-2 text-sm">
             <Radar className="h-4 w-4" /> Optimalisatie
+          </TabsTrigger>
+          <TabsTrigger value="zoektermen" className="gap-2 text-sm">
+            <SearchIcon className="h-4 w-4" /> Zoektermen
           </TabsTrigger>
           <TabsTrigger value="audit" className="gap-2 text-sm">
             <ClipboardCheck className="h-4 w-4" /> Account Audit
@@ -567,12 +555,27 @@ export default function AutopilotPage() {
           </Card>
         </TabsContent>
 
-        {/* ═══ TAB 2: account audit ═══ */}
+        {/* ═══ TAB 2: full search terms report ═══ */}
+        <TabsContent value="zoektermen" className="mt-4">
+          <SearchTermsSection
+            terms={terms}
+            loading={loading}
+            busy={busy}
+            onExclude={(t) =>
+              applyAction(
+                { type: "add_negatives", customerId: ACCOUNT_ID, campaignId: t.campaignId, terms: [t.term] },
+                `st:${t.campaignId}:${t.term}`
+              )
+            }
+          />
+        </TabsContent>
+
+        {/* ═══ TAB 3: account audit ═══ */}
         <TabsContent value="audit" className="mt-4">
           <AuditSection showToast={showToast} />
         </TabsContent>
 
-        {/* ═══ TAB 3: competitors ═══ */}
+        {/* ═══ TAB 4: competitors ═══ */}
         <TabsContent value="concurrentie" className="mt-4">
           <CompetitorSection showToast={showToast} />
         </TabsContent>
@@ -775,6 +778,8 @@ function CompetitorSection({ showToast }: { showToast: (m: string) => void }) {
 
   return (
     <div className="space-y-4">
+      <CompetitorTracker showToast={showToast} />
+
       {apiNote && (
         <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm">
           <Info className="h-4 w-4 mt-0.5 shrink-0 text-amber-400" />

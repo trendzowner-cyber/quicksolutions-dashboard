@@ -5,13 +5,15 @@ import {
   fetchSearchTerms,
   analyzeSearchTerms,
   classifyTermsWithAi,
+  dateClause,
 } from "@/lib/ads-autopilot";
 
 export const maxDuration = 60;
 
-// GET /api/ads/autopilot/search-terms?accountId=&dateRange=&ai=1
+// GET /api/ads/autopilot/search-terms?accountId=&dateRange=&start=&end=&ai=1
 // The waste finder's read side. Rules always run; the AI verdict layer only
-// runs with ai=1 (it costs a DeepSeek call and a few seconds).
+// runs with ai=1 (it costs a DeepSeek call and a few seconds). start/end
+// (YYYY-MM-DD) override dateRange for windows GAQL has no preset for.
 export async function GET(request: NextRequest) {
   if (!(await verifySession())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -21,11 +23,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Google Ads niet verbonden" }, { status: 500 });
     }
     const accountId = request.nextUrl.searchParams.get("accountId") || ADS_ACCOUNTS[0];
-    const dateRange = request.nextUrl.searchParams.get("dateRange") || "LAST_30_DAYS";
+    const clause = dateClause(
+      request.nextUrl.searchParams.get("dateRange") || "LAST_30_DAYS",
+      request.nextUrl.searchParams.get("start"),
+      request.nextUrl.searchParams.get("end")
+    );
     const withAi = request.nextUrl.searchParams.get("ai") === "1";
 
     const accessToken = await getAdAccessToken();
-    const raw = await fetchSearchTerms(accessToken, accountId, dateRange);
+    const raw = await fetchSearchTerms(accessToken, accountId, clause);
     let rows = analyzeSearchTerms(raw);
 
     if (withAi) {

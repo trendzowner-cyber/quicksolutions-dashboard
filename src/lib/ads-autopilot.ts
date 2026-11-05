@@ -45,6 +45,11 @@ export interface SearchTermRow {
   campaignName: string;
   adGroupId: string;
   adGroupName: string;
+  /** The keyword that matched this term (Search campaigns only). */
+  matchedKeyword: string | null;
+  matchType: string | null;
+  /** Google Ads status of the term itself: ADDED / EXCLUDED / ADDED_EXCLUDED / NONE. */
+  termStatus: string;
   impressions: number;
   clicks: number;
   costMicros: number;
@@ -99,16 +104,31 @@ export interface Anomaly {
 
 // ─── GAQL queries ───
 
-function searchTermsQuery(dateRange: string): string {
+/** Build a safe segments.date clause. GAQL has no LAST_90_DAYS preset, so the
+ *  dashboard passes explicit start/end dates for longer windows. The regex
+ *  gate keeps this from ever becoming a GAQL injection vector. */
+export function dateClause(dateRange: string, start?: string | null, end?: string | null): string {
+  const iso = /^\d{4}-\d{2}-\d{2}$/;
+  if (start && end && iso.test(start) && iso.test(end)) {
+    return `BETWEEN '${start}' AND '${end}'`;
+  }
+  const presets = ["LAST_7_DAYS", "LAST_14_DAYS", "LAST_30_DAYS", "THIS_MONTH", "LAST_MONTH"];
+  return `DURING ${presets.includes(dateRange) ? dateRange : "LAST_30_DAYS"}`;
+}
+
+function searchTermsQuery(clause: string): string {
   return `
     SELECT
       search_term_view.search_term,
+      search_term_view.status,
+      segments.keyword.info.text,
+      segments.keyword.info.match_type,
       campaign.id, campaign.name,
       ad_group.id, ad_group.name,
       metrics.impressions, metrics.clicks, metrics.cost_micros,
       metrics.conversions, metrics.conversions_value
     FROM search_term_view
-    WHERE segments.date DURING ${dateRange}
+    WHERE segments.date ${clause}
       AND campaign.status = 'ENABLED'
       AND metrics.impressions > 0
     ORDER BY metrics.cost_micros DESC
@@ -162,9 +182,9 @@ function num(v: unknown): number {
 export async function fetchSearchTerms(
   accessToken: string,
   customerId: string,
-  dateRange = "LAST_30_DAYS"
+  clause = "DURING LAST_30_DAYS"
 ): Promise<SearchTermRow[]> {
-  const res = await queryGoogleAds(customerId, searchTermsQuery(dateRange), accessToken);
+  const res = await queryGoogleAds(customerId, searchTermsQuery(clause), accessToken);
   const rows: SearchTermRow[] = [];
 
   for (const r of (res.results ?? []) as RawRow[]) {
@@ -172,12 +192,18 @@ export async function fetchSearchTerms(
     const c = (r as Record<string, Record<string, unknown>>).campaign ?? {};
     const g = (r as Record<string, Record<string, unknown>>).adGroup ?? {};
     const m = (r as Record<string, Record<string, unknown>>).metrics ?? {};
+    const kwInfo = (((r as Record<string, unknown>).segments ?? {}) as Record<string, unknown>)
+      .keyword as Record<string, unknown> | undefined;
+    const kw = (kwInfo?.info ?? {}) as Record<string, unknown>;
     rows.push({
       term: String(st.searchTerm ?? st.search_term ?? ""),
       campaignId: String(c.id ?? ""),
       campaignName: String(c.name ?? ""),
       adGroupId: String(g.id ?? ""),
       adGroupName: String(g.name ?? ""),
+      matchedKeyword: kw.text ? String(kw.text) : null,
+      matchType: kw.matchType ? String(kw.matchType) : null,
+      termStatus: String(st.status ?? "NONE"),
       impressions: num(m.impressions),
       clicks: num(m.clicks),
       costMicros: num(m.costMicros ?? m.cost_micros),
@@ -227,14 +253,14 @@ export function analyzeSearchTerms(rows: SearchTermRow[]): SearchTermRow[] {
 }
 
 /**
- * Second pass: DeepSeek judges the flagged terms against the business.
+ * Second pass: DeepSeek judges the highest-spend terms against the business.
  * Rule verdicts never disappear — the AI verdict is shown next to them, and
  * the button to apply a negative always stays a human click.
  */
 export async function classifyTermsWithAi(
   rows: SearchTermRow[]
 ): Promise<Record<string, { verdict: "relevant" | "irrelevant" | "brand"; reason: string }>> {
-  const flagged = rows.filter((r) => r.verdict === "waste" || r.verdict === "expensive");
+  const flagged = [...rows].sort((a, b) => b.costMicros - a.costMicros).slice(0, 60);
   if (!flagged.length) return {};
 
   const list = flagged

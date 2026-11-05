@@ -22,6 +22,7 @@ import {
 } from "./search-terms-section";
 import { CompetitorTracker } from "./competitor-tracker";
 import { CampaignsSection, KeywordsSection, NegativesSection } from "./inventory-sections";
+import { AuctionPresenceSection } from "./auction-presence";
 
 // ─── Types (mirror of src/lib/ads-autopilot.ts, ads-audit.ts, ads-auction.ts) ───
 
@@ -774,179 +775,13 @@ function AuditSection({ showToast }: { showToast: (m: string) => void }) {
 }
 
 // ─── Competitors tab ───
+// ─── Competitors tab ───
 
 function CompetitorSection({ showToast }: { showToast: (m: string) => void }) {
-  const [competitors, setCompetitors] = useState<Competitor[] | null>(null);
-  const [apiNote, setApiNote] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [csv, setCsv] = useState("");
-  const [pulledOn, setPulledOn] = useState(() => new Date().toISOString().slice(0, 10));
-  const [importing, setImporting] = useState(false);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/ads/auction");
-      const data = await res.json();
-      setCompetitors(data.competitors ?? []);
-      setApiNote(data.api?.available ? null : data.api?.reason ?? null);
-    } catch {
-      setCompetitors([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  async function importCsv() {
-    setImporting(true);
-    try {
-      const res = await fetch("/api/ads/auction", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ csv, pulledOn }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.details || data.error);
-      showToast(`✓ ${data.imported} domeinen geïmporteerd`);
-      setCsv("");
-      await load();
-    } catch (e) {
-      showToast(`✗ Import mislukt: ${String(e)}`);
-    } finally {
-      setImporting(false);
-    }
-  }
-
-  const chartData = (competitors ?? []).slice(0, 12).map((c) => ({
-    domain: c.domain,
-    dagen: c.daysPresent30,
-    status: c.status,
-  }));
-
   return (
     <div className="space-y-4">
       <CompetitorTracker showToast={showToast} />
-
-      {apiNote && (
-        <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm">
-          <Info className="h-4 w-4 mt-0.5 shrink-0 text-amber-400" />
-          <p>
-            {apiNote}{" "}
-            In Google Ads: <strong>Campagnes → Statistieken en rapporten → Auction insights</strong> →
-            download als CSV → plak hieronder. Elke upload is een dagpunt; na een paar weken zie je
-            wie er structureel meebiedt op jouw veilingen.
-          </p>
-        </div>
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Upload className="h-5 w-5 text-brand" /> Auction insights importeren
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <textarea
-            value={csv}
-            onChange={(e) => setCsv(e.target.value)}
-            placeholder='Plak hier de CSV uit Google Ads (bijv. "Display URL domain,Impression share,...")'
-            className="w-full h-28 rounded-md border border-border bg-background px-3 py-2 text-xs font-mono"
-          />
-          <div className="flex items-center gap-3">
-            <label className="text-sm text-muted-foreground">
-              Datum van export:{" "}
-              <input
-                type="date"
-                value={pulledOn}
-                onChange={(e) => setPulledOn(e.target.value)}
-                className="rounded-md border border-border bg-background px-2 py-1 text-sm"
-              />
-            </label>
-            <Button size="sm" onClick={importCsv} disabled={!csv.trim() || importing}>
-              {importing ? "Importeren…" : "Importeer"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {loading ? (
-        <Skeleton className="h-64 w-full" />
-      ) : !competitors?.length ? (
-        <Card><CardContent className="pt-5">
-          <p className="text-sm text-muted-foreground text-center py-6">
-            Nog geen data. Importeer je eerste auction-insights CSV hierboven — vanaf de tweede
-            upload begint de trend zichtbaar te worden.
-          </p>
-        </CardContent></Card>
-      ) : (
-        <>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Aanwezigheid laatste 30 dagen (top 12)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={Math.max(200, chartData.length * 32)}>
-                <BarChart data={chartData} layout="vertical" margin={{ left: 80 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis type="number" domain={[0, 30]} tick={{ fontSize: 11 }} className="fill-muted-foreground" />
-                  <YAxis type="category" dataKey="domain" tick={{ fontSize: 11 }} className="fill-muted-foreground" width={120} />
-                  <Tooltip
-                    contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
-                    formatter={(value) => [`${Number(value)} van 30 dagen`, "Aanwezig"]}
-                  />
-                  <Bar dataKey="dagen" radius={[0, 4, 4, 0]}>
-                    {chartData.map((c) => (
-                      <Cell
-                        key={c.domain}
-                        fill={c.status === "expanding" ? "#f59e0b" : c.status === "gone" ? "#10b981" : "#6366f1"}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Concurrenten in je veilingen</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-xs text-muted-foreground border-b border-border">
-                      <th className="py-2 pr-3">Domein</th>
-                      <th className="py-2 pr-3">Eerst gezien</th>
-                      <th className="py-2 pr-3">Laatst gezien</th>
-                      <th className="py-2 pr-3 text-right">Aanwezig (30d)</th>
-                      <th className="py-2 pr-3 text-right">Campagnes</th>
-                      <th className="py-2">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {competitors.map((c) => {
-                      const st = COMP_STATUS[c.status];
-                      return (
-                        <tr key={c.domain} className="border-b border-border/50 hover:bg-muted/20">
-                          <td className="py-2 pr-3 font-medium">{c.domain}</td>
-                          <td className="py-2 pr-3 text-muted-foreground">{c.firstSeen}</td>
-                          <td className="py-2 pr-3 text-muted-foreground">{c.lastSeen}</td>
-                          <td className="py-2 pr-3 text-right">{c.daysPresent30} / 30</td>
-                          <td className="py-2 pr-3 text-right">{c.campaigns}</td>
-                          <td className="py-2"><Badge className={st.cls}>{st.label}</Badge></td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </>
-      )}
+      <AuctionPresenceSection showToast={showToast} />
     </div>
   );
 }

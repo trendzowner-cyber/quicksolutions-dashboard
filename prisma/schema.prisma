@@ -538,3 +538,22 @@ model CompetitorAd {
   @@unique([competitorId, creativeId])
   @@index([competitorId, lastShown])
 }
+
+// ─── Auction presence (domain-only auction insights) ───
+// Probe A verified 2026-11-05 (API v23): segments.auction_insight_domain +
+// segments.date FROM campaign is readable with our token — presence only,
+// no rival metrics (those stay allowlist-gated).
+
+model AuctionPresence {
+  id           String   @id @default(cuid())
+  campaignId   String
+  campaignName String   @default("")
+  domain       String
+  seenOn       DateTime @db.Date
+  apiVersion   String   @default("v23")
+  fetchedAt    DateTime @default(now())
+
+  @@unique([campaignId, domain, seenOn])
+  @@index([domain, seenOn])
+  @@index([seenOn])
+}

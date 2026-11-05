@@ -39,6 +39,7 @@ const publicPaths = [
   "/api/ads/digest",
   "/api/ads/autopilot/monitor",
   "/api/ads/competitors/sync",
+  "/api/ads/auction/sync",
   "/api/tasks/sweep",
   "/api/tasks/briefing",
 ];

@@ -158,3 +158,4 @@ export async function getCompetitorPresence(): Promise<CompetitorPresence[]> {
   // Most present first — that's who you're actually fighting.
   return out.sort((a, b) => b.daysPresent30 - a.daysPresent30);
 }
+

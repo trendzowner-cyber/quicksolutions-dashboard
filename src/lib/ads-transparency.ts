@@ -240,5 +240,14 @@ export async function storeAds(
     },
   });
 
+  // Rows created by hand or by an early sync may lack the resolved
+  // advertiser name/id — backfill from the creatives once we have them.
+  if (ads.length) {
+    await db.competitor.updateMany({
+      where: { id: competitorId, name: null },
+      data: { name: ads[0].advertiser || null, advertiserId: ads[0].advertiserId },
+    });
+  }
+
   return { stored: ads.length, fresh };
 }

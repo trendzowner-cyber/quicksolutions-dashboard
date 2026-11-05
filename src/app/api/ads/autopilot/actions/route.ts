@@ -6,6 +6,7 @@ import {
   pauseKeyword,
   setCampaignBudget,
 } from "@/lib/ads-autopilot";
+import { removeNegative } from "@/lib/ads-inventory";
 
 export const maxDuration = 60;
 
@@ -18,6 +19,7 @@ export const maxDuration = 60;
 //   { type: "add_negatives",  customerId, campaignId, terms: string[] }
 //   { type: "pause_keyword",  customerId, criterionResourceName, label? }
 //   { type: "set_budget",     customerId, budgetResourceName, amountMicros, label? }
+//   { type: "remove_negative", customerId, resourceName, label? }
 export async function POST(request: NextRequest) {
   if (!(await verifySession())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -73,6 +75,13 @@ export async function POST(request: NextRequest) {
       }
       await setCampaignBudget(customerId, budgetResourceName, amountMicros);
       summary = `Budget aangepast: ${String(body.label ?? budgetResourceName)} → €${(amountMicros / 1_000_000).toFixed(2)}/dag`;
+    } else if (type === "remove_negative") {
+      const resourceName = String(body.resourceName ?? "");
+      if (!resourceName.includes("/campaignCriteria/") && !resourceName.includes("/sharedCriteria/")) {
+        return NextResponse.json({ error: "Ongeldige negative resourceName" }, { status: 400 });
+      }
+      await removeNegative(customerId, resourceName);
+      summary = `Negatief keyword verwijderd (blokkade opgeheven): ${String(body.label ?? resourceName)}`;
     } else {
       return NextResponse.json({ error: `Onbekend actietype: ${type}` }, { status: 400 });
     }

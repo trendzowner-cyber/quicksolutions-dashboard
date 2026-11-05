@@ -10,7 +10,7 @@ import {
   Radar, Trash2, TrendingUp, TrendingDown, Minus, Sparkles,
   PauseCircle, Wallet, RefreshCw, CheckCircle2, AlertTriangle,
   ClipboardCheck, Swords, Upload, XCircle, AlertCircle, Info,
-  Search as SearchIcon,
+  Search as SearchIcon, KeyRound, Layers, Ban,
 } from "lucide-react";
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -21,6 +21,7 @@ import {
   type SearchTermRow,
 } from "./search-terms-section";
 import { CompetitorTracker } from "./competitor-tracker";
+import { CampaignsSection, KeywordsSection, NegativesSection } from "./inventory-sections";
 
 // ─── Types (mirror of src/lib/ads-autopilot.ts, ads-audit.ts, ads-auction.ts) ───
 
@@ -42,8 +43,12 @@ interface KeywordRow {
   resourceName: string;
   text: string;
   matchType: string;
+  status: string;
+  campaignId: string;
   campaignName: string;
   adGroupName: string;
+  impressions: number;
+  clicks: number;
   costMicros: number;
   conversions: number;
   cpa: number | null;
@@ -97,6 +102,7 @@ export default function AutopilotPage() {
   const [terms, setTerms] = useState<SearchTermRow[] | null>(null);
   const [budgets, setBudgets] = useState<BudgetAdvice[] | null>(null);
   const [keywords, setKeywords] = useState<KeywordRow[] | null>(null);
+  const [allKeywords, setAllKeywords] = useState<KeywordRow[] | null>(null);
   const [days, setDays] = useState<DayPoint[] | null>(null);
   const [summary, setSummary] = useState<{ waste: number; winners: number; wasteCostMicros: number } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -130,6 +136,7 @@ export default function AutopilotPage() {
       setTerms(st.rows ?? []);
       setSummary(st.summary ?? null);
       setBudgets(bg.advice ?? []);
+      setAllKeywords(kw.rows ?? []);
       setKeywords((kw.rows ?? []).filter((k: KeywordRow) => k.flag === "pause_candidate"));
       setDays(ts.days ?? []);
     } catch (e) {
@@ -263,12 +270,21 @@ export default function AutopilotPage() {
       </Card>
 
       <Tabs defaultValue="optimalisatie">
-        <TabsList className="h-10">
+        <TabsList className="h-10 flex-wrap">
           <TabsTrigger value="optimalisatie" className="gap-2 text-sm">
             <Radar className="h-4 w-4" /> Optimalisatie
           </TabsTrigger>
           <TabsTrigger value="zoektermen" className="gap-2 text-sm">
             <SearchIcon className="h-4 w-4" /> Zoektermen
+          </TabsTrigger>
+          <TabsTrigger value="keywords" className="gap-2 text-sm">
+            <KeyRound className="h-4 w-4" /> Keywords
+          </TabsTrigger>
+          <TabsTrigger value="campagnes" className="gap-2 text-sm">
+            <Layers className="h-4 w-4" /> Campagnes
+          </TabsTrigger>
+          <TabsTrigger value="negatieven" className="gap-2 text-sm">
+            <Ban className="h-4 w-4" /> Negatieven
           </TabsTrigger>
           <TabsTrigger value="audit" className="gap-2 text-sm">
             <ClipboardCheck className="h-4 w-4" /> Account Audit
@@ -570,12 +586,45 @@ export default function AutopilotPage() {
           />
         </TabsContent>
 
-        {/* ═══ TAB 3: account audit ═══ */}
+        {/* ═══ TAB 3: keywords ═══ */}
+        <TabsContent value="keywords" className="mt-4">
+          <KeywordsSection
+            keywords={allKeywords}
+            loading={loading}
+            busy={busy}
+            onPause={(k) =>
+              applyAction(
+                { type: "pause_keyword", customerId: ACCOUNT_ID, criterionResourceName: k.resourceName, label: k.text },
+                `kw:${k.resourceName}`
+              )
+            }
+          />
+        </TabsContent>
+
+        {/* ═══ TAB 4: campaigns + impression share ═══ */}
+        <TabsContent value="campagnes" className="mt-4">
+          <CampaignsSection dateRange={dateRange === "LAST_90_DAYS" ? "LAST_30_DAYS" : dateRange} />
+        </TabsContent>
+
+        {/* ═══ TAB 5: negative keywords ═══ */}
+        <TabsContent value="negatieven" className="mt-4">
+          <NegativesSection
+            busy={busy}
+            onUnblock={(n) =>
+              applyAction(
+                { type: "remove_negative", customerId: ACCOUNT_ID, resourceName: n.resourceName, label: n.text },
+                `neg:${n.resourceName}`
+              )
+            }
+          />
+        </TabsContent>
+
+        {/* ═══ TAB 6: account audit ═══ */}
         <TabsContent value="audit" className="mt-4">
           <AuditSection showToast={showToast} />
         </TabsContent>
 
-        {/* ═══ TAB 4: competitors ═══ */}
+        {/* ═══ TAB 7: competitors ═══ */}
         <TabsContent value="concurrentie" className="mt-4">
           <CompetitorSection showToast={showToast} />
         </TabsContent>

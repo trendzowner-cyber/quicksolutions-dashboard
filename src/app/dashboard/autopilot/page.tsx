@@ -254,7 +254,7 @@ export default function AutopilotPage() {
       <Tabs defaultValue="optimalisatie">
         {/* Sticky tab bar — single scrollable row so 9 tabs never wrap/overlap */}
         <div className="sticky top-0 z-30 -mx-1 border-b border-border bg-background/95 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto [scrollbar-width:thin] [scrollbar-color:var(--border)_transparent]">
             <TabsList className="w-max flex-nowrap">
             <TabsTrigger value="optimalisatie" className="flex-none gap-2 text-sm">
               <Radar className="h-4 w-4" /> Optimalisatie

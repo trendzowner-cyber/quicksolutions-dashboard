@@ -84,6 +84,9 @@ export function AgentSection({
   const [busy, setBusy] = useState<string | null>(null);
   const [memText, setMemText] = useState("");
   const [memKind, setMemKind] = useState<"rule" | "fact">("rule");
+  const [questions, setQuestions] = useState<{ question: string; why: string }[] | null>(null);
+  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [answering, setAnswering] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     const [p, h, m] = await Promise.all([
@@ -94,7 +97,35 @@ export function AgentSection({
     setPending(p.proposals ?? []);
     setHistory((h.proposals ?? []).filter((x: Proposal) => x.status !== "pending"));
     setMemory(m.memory ?? []);
-  }, []);
+    // "Needs you" — questions the agent can't answer from data alone
+    fetch(`/api/ads/agent/questions?accountId=${accountId}`)
+      .then((r) => r.json())
+      .then((d) => setQuestions(d.questions ?? []))
+      .catch(() => setQuestions([]));
+  }, [accountId]);
+
+  async function answerQuestion(i: number) {
+    const q = questions?.[i];
+    const a = (answers[i] ?? "").trim();
+    if (!q || !a) return;
+    setAnswering(i);
+    try {
+      const res = await fetch("/api/ads/agent/questions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: q.question, answer: a }),
+      });
+      if (!res.ok) throw new Error("Opslaan mislukt");
+      setQuestions((qs) => (qs ?? []).filter((_, idx) => idx !== i));
+      setAnswers((prev) => { const next = { ...prev }; delete next[i]; return next; });
+      showToast("✓ Antwoord opgeslagen — de agent onthoudt dit");
+      await load();
+    } catch (e) {
+      showToast(`✗ ${String(e)}`);
+    } finally {
+      setAnswering(null);
+    }
+  }
 
   useEffect(() => { load().catch(() => {}); }, [load]);
 
@@ -252,6 +283,39 @@ export function AgentSection({
           )}
         </CardContent>
       </Card>
+
+      {/* Needs you — questions the agent can't answer from data alone */}
+      {questions && questions.length > 0 && (
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-bold">?</span>
+              Heeft jou nodig
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {questions.map((q, i) => (
+              <div key={i} className="rounded-lg border border-amber-500/20 bg-card px-4 py-3">
+                <p className="text-sm font-medium">{q.question}</p>
+                <p className="text-xs text-muted-foreground mt-1">{q.why}</p>
+                <div className="mt-3 flex gap-2">
+                  <input
+                    value={answers[i] ?? ""}
+                    onChange={(e) => setAnswers((prev) => ({ ...prev, [i]: e.target.value }))}
+                    onKeyDown={(e) => e.key === "Enter" && answerQuestion(i)}
+                    placeholder="Jouw antwoord…"
+                    className="flex-1 rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+                    maxLength={500}
+                  />
+                  <Button size="sm" onClick={() => answerQuestion(i)} disabled={answering === i || !(answers[i] ?? "").trim()}>
+                    {answering === i ? "…" : "Beantwoord"}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Memory / rules */}
       <Card>

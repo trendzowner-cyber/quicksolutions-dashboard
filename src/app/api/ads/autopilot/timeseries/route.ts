@@ -22,9 +22,13 @@ export async function GET(request: NextRequest) {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, t]) => ({
         date: date.slice(5), // "MM-DD" for the axis
+        fullDate: date,      // "YYYY-MM-DD" for week/month aggregation
         spend: Math.round(t.costMicros) / 1_000_000,
         clicks: t.clicks,
+        impressions: t.impressions,
         conversions: Math.round(t.conversions * 100) / 100,
+        allConversions: Math.round(t.allConversions * 100) / 100,
+        convValue: Math.round(t.conversionsValue * 100) / 100,
         impressionShare: t.impressionShare !== null ? Math.round(t.impressionShare * 1000) / 10 : null,
       }));
 

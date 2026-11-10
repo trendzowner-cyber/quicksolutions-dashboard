@@ -63,10 +63,58 @@ interface KeywordRow {
 
 interface DayPoint {
   date: string;
+  fullDate: string;
   spend: number;
   clicks: number;
+  impressions: number;
   conversions: number;
+  allConversions: number;
+  convValue: number;
   impressionShare: number | null;
+}
+
+// Metric definitions for the insights chart (Bavian-style picker).
+const CHART_METRICS: Record<string, { label: string; color: string; fmt: (v: number) => string }> = {
+  spend: { label: "Spend", color: "#f59e0b", fmt: (v) => `€${v.toLocaleString("nl-BE", { maximumFractionDigits: 0 })}` },
+  clicks: { label: "Kliks", color: "#3b82f6", fmt: (v) => v.toLocaleString("nl-BE") },
+  impressions: { label: "Impressies", color: "#8b5cf6", fmt: (v) => v.toLocaleString("nl-BE", { notation: "compact" }) },
+  ctr: { label: "CTR", color: "#06b6d4", fmt: (v) => `${v.toFixed(2)}%` },
+  conversions: { label: "Conversies", color: "#10b981", fmt: (v) => v.toLocaleString("nl-BE", { maximumFractionDigits: 1 }) },
+  convValue: { label: "Conv. waarde", color: "#ec4899", fmt: (v) => `€${v.toLocaleString("nl-BE", { maximumFractionDigits: 0 })}` },
+};
+
+type Granularity = "day" | "week" | "month";
+const MONTH_NL = ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
+
+function aggregateDays(days: DayPoint[], gran: Granularity): (DayPoint & { label: string; ctr: number })[] {
+  const withCtr = (d: DayPoint & { label: string }) => ({
+    ...d,
+    ctr: d.impressions > 0 ? (d.clicks / d.impressions) * 100 : 0,
+  });
+  if (gran === "day") return days.map((d) => withCtr({ ...d, label: d.date }));
+  const buckets = new Map<string, DayPoint & { label: string }>();
+  for (const d of days) {
+    const dt = new Date(`${d.fullDate}T00:00:00`);
+    let key: string, label: string;
+    if (gran === "week") {
+      const monday = new Date(dt);
+      monday.setDate(dt.getDate() - ((dt.getDay() + 6) % 7));
+      key = monday.toISOString().slice(0, 10);
+      label = `wk ${key.slice(5)}`;
+    } else {
+      key = d.fullDate.slice(0, 7);
+      label = MONTH_NL[Number(key.slice(5)) - 1];
+    }
+    const b = buckets.get(key) ?? { ...d, label, spend: 0, clicks: 0, impressions: 0, conversions: 0, allConversions: 0, convValue: 0, impressionShare: null };
+    b.spend += d.spend;
+    b.clicks += d.clicks;
+    b.impressions += d.impressions;
+    b.conversions += d.conversions;
+    b.allConversions += d.allConversions;
+    b.convValue += d.convValue;
+    buckets.set(key, b);
+  }
+  return [...buckets.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, v]) => withCtr(v));
 }
 
 interface Finding {
@@ -109,6 +157,8 @@ export default function AutopilotPage() {
   const [keywords, setKeywords] = useState<KeywordRow[] | null>(null);
   const [allKeywords, setAllKeywords] = useState<KeywordRow[] | null>(null);
   const [days, setDays] = useState<DayPoint[] | null>(null);
+  const [chartMetric, setChartMetric] = useState<string>("spend");
+  const [granularity, setGranularity] = useState<Granularity>("day");
   const [summary, setSummary] = useState<{ waste: number; winners: number; wasteCostMicros: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
@@ -342,40 +392,67 @@ export default function AutopilotPage() {
             </Card>
           </div>
 
-          {/* Spend & conversions chart — lives in the overview tab now, with
-              legend and units so it does not dominate every other tab. */}
+          {/* Insights chart — metric picker + granularity (Bavian-style) */}
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-wrap flex-row items-center justify-between gap-2">
               <CardTitle className="text-lg">
-                Spend &amp; conversies — {dateRange === "LAST_7_DAYS" ? "7" : dateRange === "LAST_90_DAYS" ? "90" : "30"} dagen
+                Prestaties — {dateRange === "LAST_7_DAYS" ? "7" : dateRange === "LAST_90_DAYS" ? "90" : "30"} dagen
               </CardTitle>
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={chartMetric}
+                  onChange={(e) => setChartMetric(e.target.value)}
+                  className="rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+                >
+                  {Object.entries(CHART_METRICS).map(([k, m]) => (
+                    <option key={k} value={k}>{m.label}</option>
+                  ))}
+                </select>
+                <div className="flex rounded-md border border-border overflow-hidden text-sm">
+                  {(["day", "week", "month"] as const).map((g) => (
+                    <button
+                      key={g}
+                      onClick={() => setGranularity(g)}
+                      className={`px-2.5 py-1.5 ${granularity === g ? "bg-google text-google-foreground" : "bg-background text-muted-foreground hover:text-foreground"}`}
+                    >
+                      {g === "day" ? "Dag" : g === "week" ? "Week" : "Maand"}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {loading || !days ? (
                 <Skeleton className="h-56 w-full" />
               ) : (
-                <>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2">
-                    <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-4 rounded bg-[#f59e0b]" /> Spend (€, links)</span>
-                    <span className="flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 bg-[#10b981]" /> Conversies (aantal, rechts)</span>
-                  </div>
-                  <ResponsiveContainer width="100%" height={220}>
-                    <ComposedChart data={days}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                      <XAxis dataKey="date" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
-                      <YAxis yAxisId="left" tick={{ fontSize: 11 }} className="fill-muted-foreground" tickFormatter={(v) => `€${v}`} />
-                      <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
-                      <Tooltip
-                        contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
-                        formatter={(value, name) =>
-                          name === "spend" ? [`€${Number(value).toFixed(2)}`, "Spend"] : [value, name === "conversions" ? "Conversies" : "Kliks"]
-                        }
-                      />
-                      <Area yAxisId="left" type="monotone" dataKey="spend" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.15} name="spend" />
-                      <Line yAxisId="right" type="monotone" dataKey="conversions" stroke="#10b981" strokeWidth={2} dot={false} name="conversions" />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </>
+                (() => {
+                  const m = CHART_METRICS[chartMetric];
+                  const data = aggregateDays(days, granularity).map((d) => ({
+                    ...d,
+                    metric: chartMetric === "ctr" ? d.ctr : d[chartMetric as keyof DayPoint],
+                  }));
+                  return (
+                    <>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2">
+                        <span className="flex items-center gap-1.5">
+                          <span className="inline-block h-2 w-4 rounded" style={{ background: m.color }} /> {m.label} (links)
+                        </span>
+                      </div>
+                      <ResponsiveContainer width="100%" height={220}>
+                        <ComposedChart data={data}>
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                          <XAxis dataKey="label" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
+                          <YAxis yAxisId="left" tick={{ fontSize: 11 }} className="fill-muted-foreground" tickFormatter={(v) => m.fmt(Number(v))} />
+                          <Tooltip
+                            contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
+                            formatter={(value) => [m.fmt(Number(value)), m.label]}
+                          />
+                          <Area yAxisId="left" type="monotone" dataKey="metric" stroke={m.color} fill={m.color} fillOpacity={0.15} name={m.label} />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </>
+                  );
+                })()
               )}
             </CardContent>
           </Card>

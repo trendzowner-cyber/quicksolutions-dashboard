@@ -11,6 +11,7 @@ import {
   PauseCircle, Wallet, RefreshCw, CheckCircle2, AlertTriangle,
   ClipboardCheck, Swords, Upload, XCircle, AlertCircle, Info,
   Search as SearchIcon, KeyRound, Layers, Ban, Megaphone, Target,
+  Link2, Crosshair, MapPin, Brain,
 } from "lucide-react";
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -26,6 +27,8 @@ import { AuctionPresenceSection } from "./auction-presence";
 import { AdsSection } from "./ads-section";
 import { ConversionsSection } from "./conversions-section";
 import { AgentSection } from "./agent-section";
+import { ContextSection, BiddingSection, LocationsSection } from "./context-bidding-locations";
+import { AssetsSection } from "./assets-section";
 import { MiniMarkdown } from "@/components/ui/mini-markdown";
 
 // ─── Types (mirror of src/lib/ads-autopilot.ts, ads-audit.ts, ads-auction.ts) ───
@@ -321,6 +324,18 @@ export default function AutopilotPage() {
             </TabsTrigger>
             <TabsTrigger value="campagnes" className="flex-none gap-2 text-sm">
               <Layers className="h-4 w-4" /> Campagnes
+            </TabsTrigger>
+            <TabsTrigger value="assets" className="flex-none gap-2 text-sm">
+              <Link2 className="h-4 w-4" /> Assets
+            </TabsTrigger>
+            <TabsTrigger value="biedingen" className="flex-none gap-2 text-sm">
+              <Crosshair className="h-4 w-4" /> Biedingen
+            </TabsTrigger>
+            <TabsTrigger value="locaties" className="flex-none gap-2 text-sm">
+              <MapPin className="h-4 w-4" /> Locaties
+            </TabsTrigger>
+            <TabsTrigger value="context" className="flex-none gap-2 text-sm">
+              <Brain className="h-4 w-4" /> Context
             </TabsTrigger>
             <TabsTrigger value="negatieven" className="flex-none gap-2 text-sm">
               <Ban className="h-4 w-4" /> Negatieven
@@ -726,6 +741,26 @@ export default function AutopilotPage() {
         {/* ═══ TAB 4: campaigns + impression share ═══ */}
         <TabsContent value="campagnes" className="mt-4">
           <CampaignsSection dateRange={dateRange === "LAST_90_DAYS" ? "LAST_30_DAYS" : dateRange} />
+        </TabsContent>
+
+        {/* ═══ Assets: sitelinks/callouts editor + AI drafts + conversion create ═══ */}
+        <TabsContent value="assets" className="mt-4">
+          <AssetsSection accountId={ACCOUNT_ID} showToast={showToast} />
+        </TabsContent>
+
+        {/* ═══ Biedingen: per-campaign bid strategy overview (read-only) ═══ */}
+        <TabsContent value="biedingen" className="mt-4">
+          <BiddingSection accountId={ACCOUNT_ID} />
+        </TabsContent>
+
+        {/* ═══ Locaties: per-campaign geo targeting (read-only) ═══ */}
+        <TabsContent value="locaties" className="mt-4">
+          <LocationsSection accountId={ACCOUNT_ID} />
+        </TabsContent>
+
+        {/* ═══ Context: business profile + memory feeding the AI ═══ */}
+        <TabsContent value="context" className="mt-4">
+          <ContextSection showToast={showToast} />
         </TabsContent>
 
         {/* ═══ TAB 5: negative keywords ═══ */}

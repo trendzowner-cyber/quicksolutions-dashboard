@@ -488,7 +488,7 @@ export async function detectAnomalies(accessToken: string, customerId: string): 
 
 // ─── Mutations (write-side, only via /api/ads/autopilot/actions) ───
 
-async function mutate(
+export async function mutate(
   customerId: string,
   accessToken: string,
   operations: Record<string, unknown>[]

@@ -24,10 +24,11 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: "Ongeldige JSON" }, { status: 400 });
   }
-  const kind = body.kind === "rule" ? "rule" : "fact";
+  const kind = ["rule", "fact", "profile"].includes(String(body.kind)) ? String(body.kind) : "fact";
   const text = String(body.text ?? "").trim();
-  if (!text || text.length > 500) {
-    return NextResponse.json({ error: "Tekst verplicht (max 500 tekens)" }, { status: 400 });
+  const maxLen = kind === "profile" ? 5000 : 500;
+  if (!text || text.length > maxLen) {
+    return NextResponse.json({ error: `Tekst verplicht (max ${maxLen} tekens)` }, { status: 400 });
   }
   const row = await db.adsAgentMemory.create({ data: { kind, text, source: "user" } });
   return NextResponse.json({ ok: true, row });

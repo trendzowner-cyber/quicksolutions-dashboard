@@ -29,6 +29,7 @@ import { ConversionsSection } from "./conversions-section";
 import { AgentSection } from "./agent-section";
 import { ContextSection, BiddingSection, LocationsSection } from "./context-bidding-locations";
 import { AssetsSection } from "./assets-section";
+import { BudgetSection } from "./budget-section";
 import { MiniMarkdown } from "@/components/ui/mini-markdown";
 
 // ─── Types (mirror of src/lib/ads-autopilot.ts, ads-audit.ts, ads-auction.ts) ───
@@ -351,6 +352,9 @@ export default function AutopilotPage() {
             </TabsTrigger>
             <TabsTrigger value="locaties" className="flex-none gap-2 text-sm">
               <MapPin className="h-4 w-4" /> Locaties
+            </TabsTrigger>
+            <TabsTrigger value="budget" className="flex-none gap-2 text-sm">
+              <Wallet className="h-4 w-4" /> Budget
             </TabsTrigger>
             <TabsTrigger value="context" className="flex-none gap-2 text-sm">
               <Brain className="h-4 w-4" /> Context
@@ -784,6 +788,11 @@ export default function AutopilotPage() {
         {/* ═══ Locaties: per-campaign geo targeting (read-only) ═══ */}
         <TabsContent value="locaties" className="mt-4">
           <LocationsSection accountId={ACCOUNT_ID} />
+        </TabsContent>
+
+        {/* ═══ Budget: total cap + AI allocation (Bavian parity) ═══ */}
+        <TabsContent value="budget" className="mt-4">
+          <BudgetSection accountId={ACCOUNT_ID} showToast={showToast} onProposalsChanged={() => load(false)} />
         </TabsContent>
 
         {/* ═══ Context: business profile + memory feeding the AI ═══ */}

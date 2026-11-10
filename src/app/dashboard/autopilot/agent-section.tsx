@@ -36,17 +36,37 @@ interface MemoryRow {
   source: string;
 }
 
-const TYPE_STYLE: Record<string, { icon: React.ElementType; cls: string; label: string }> = {
-  add_negatives: { icon: Ban, cls: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30", label: "Negatief keyword" },
-  pause_keyword: { icon: PauseCircle, cls: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30", label: "Keyword pauzeren" },
-  set_budget: { icon: Wallet, cls: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30", label: "Budget" },
-  remove_negative: { icon: Trash2, cls: "bg-muted/40 text-muted-foreground border-border", label: "Negatief verwijderen" },
+const TYPE_STYLE: Record<string, { icon: React.ElementType; tile: string; badge: string; label: string }> = {
+  add_negatives: {
+    icon: Ban,
+    tile: "bg-red-500/15 text-red-500 dark:text-red-400",
+    badge: "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/40",
+    label: "Negatief keyword",
+  },
+  pause_keyword: {
+    icon: PauseCircle,
+    tile: "bg-amber-500/15 text-amber-500 dark:text-amber-400",
+    badge: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/40",
+    label: "Keyword pauzeren",
+  },
+  set_budget: {
+    icon: Wallet,
+    tile: "bg-blue-500/15 text-blue-500 dark:text-blue-400",
+    badge: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/40",
+    label: "Budget",
+  },
+  remove_negative: {
+    icon: Trash2,
+    tile: "bg-muted text-muted-foreground",
+    badge: "bg-muted text-muted-foreground border border-border",
+    label: "Negatief verwijderen",
+  },
 };
 
 const STATUS_STYLE: Record<string, { cls: string; label: string }> = {
-  executed: { cls: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30", label: "Uitgevoerd" },
-  rejected: { cls: "bg-muted/40 text-muted-foreground border-border", label: "Afgewezen" },
-  failed: { cls: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30", label: "Mislukt" },
+  executed: { cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40", label: "Uitgevoerd" },
+  rejected: { cls: "bg-muted text-muted-foreground border border-border", label: "Afgewezen" },
+  failed: { cls: "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/40", label: "Mislukt" },
 };
 
 export function AgentSection({
@@ -196,17 +216,19 @@ export function AgentSection({
               {pending.map((p) => {
                 const t = TYPE_STYLE[p.type] ?? TYPE_STYLE.remove_negative;
                 return (
-                  <div key={p.id} className="rounded-lg border border-border p-4 flex flex-wrap items-center gap-3">
-                    <t.icon className="h-5 w-5 shrink-0 text-muted-foreground" />
-                    <div className="flex-1 min-w-60">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium">{p.title}</p>
-                        <Badge className={t.cls}>{t.label}</Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-0.5">{p.reason}</p>
-                      <p className="text-xs text-muted-foreground/70 mt-0.5">Voorgesteld {timeAgo(p.createdAt)}</p>
+                  <div key={p.id} className="group rounded-xl border border-border bg-card/50 hover:border-google/40 hover:bg-muted/30 transition-colors p-4 flex flex-wrap items-start gap-4">
+                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${t.tile}`}>
+                      <t.icon className="h-5 w-5" />
                     </div>
-                    <div className="flex gap-2 shrink-0">
+                    <div className="flex-1 min-w-60">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <p className="font-medium leading-snug">{p.title}</p>
+                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${t.badge}`}>{t.label}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{p.reason}</p>
+                      <p className="text-xs text-muted-foreground/60 mt-1.5">Voorgesteld {timeAgo(p.createdAt)}</p>
+                    </div>
+                    <div className="flex gap-2 shrink-0 self-center">
                       <Button
                         size="sm"
                         disabled={busy !== null}

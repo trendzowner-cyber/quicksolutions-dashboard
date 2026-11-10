@@ -62,21 +62,30 @@ export async function fetchCampaignLocations(
     byCampaign.set(id, entry);
   }
 
-  // Resolve geo target names (best effort — a campaign without resolved names
-  // still shows IDs rather than failing).
+  // Resolve geo target names. geo_target_constant only supports filtering by
+  // numeric id (verified live: resource_name filters are rejected), so chunk
+  // the ids into IN lists.
   if (geoRns.size) {
+    const ids = [...geoRns].map((rn) => rn.split("/").pop() ?? "").filter(Boolean);
+    const names = new Map<string, string>();
     try {
-      const gr = await queryGoogleAds(customerId, `
-        SELECT geo_target_constant.resource_name, geo_target_constant.name,
-               geo_target_constant.country_code, geo_target_constant.target_type
-        FROM geo_target_constant
-        WHERE ${[...geoRns].map((rn) => `geo_target_constant.resource_name = '${rn}'`).join(" OR ")}
-        LIMIT 200
-      `, accessToken);
-      const names = new Map<string, string>();
-      for (const r of (gr.results ?? []) as Record<string, Record<string, unknown>>[]) {
-        const g = r.geoTargetConstant ?? r.geo_target_constant ?? {};
-        names.set(String(g.resourceName ?? g.resource_name ?? ""), String(g.name ?? ""));
+      for (let i = 0; i < ids.length; i += 200) {
+        const chunk = ids.slice(i, i + 200);
+        const gr = await queryGoogleAds(customerId, `
+          SELECT geo_target_constant.id, geo_target_constant.resource_name,
+                 geo_target_constant.name, geo_target_constant.canonical_name,
+                 geo_target_constant.country_code, geo_target_constant.target_type
+          FROM geo_target_constant
+          WHERE geo_target_constant.id IN (${chunk.join(",")})
+          LIMIT ${chunk.length}
+        `, accessToken);
+        for (const r of (gr.results ?? []) as Record<string, Record<string, unknown>>[]) {
+          const g = r.geoTargetConstant ?? r.geo_target_constant ?? {};
+          names.set(
+            String(g.resourceName ?? g.resource_name ?? ""),
+            String(g.canonicalName ?? g.canonical_name ?? g.name ?? "")
+          );
+        }
       }
       for (const camp of byCampaign.values()) {
         for (const t of camp.targets) {

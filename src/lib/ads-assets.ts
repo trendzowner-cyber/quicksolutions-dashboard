@@ -38,7 +38,7 @@ export async function fetchCampaignAssets(
       asset.sitelink_asset.link_text,
       asset.sitelink_asset.description1,
       asset.sitelink_asset.description2,
-      asset.sitelink_asset.final_urls,
+      asset.final_urls,
       asset.callout_asset.callout_text
     FROM campaign_asset
     WHERE campaign.status = 'ENABLED'
@@ -65,7 +65,7 @@ export async function fetchCampaignAssets(
 
     if (type === "SITELINK") {
       const sl = (a.sitelinkAsset ?? a.sitelink_asset ?? {}) as Record<string, unknown>;
-      const urls = (sl.finalUrls ?? sl.final_urls ?? []) as string[];
+      const urls = (a.finalUrls ?? a.final_urls ?? []) as string[];
       entry.sitelinks.push({
         campaignAssetRn: rn,
         linkText: String(sl.linkText ?? sl.link_text ?? ""),
@@ -98,11 +98,11 @@ export async function addSitelink(
       assetOperation: {
         create: {
           resourceName: tempRn,
+          finalUrls: [s.finalUrl],
           sitelinkAsset: {
             linkText: s.linkText,
-            description1: s.description1 ?? "",
-            description2: s.description2 ?? "",
-            finalUrls: [s.finalUrl],
+            ...(s.description1 ? { description1: s.description1 } : {}),
+            ...(s.description2 ? { description2: s.description2 } : {}),
           },
         },
       },

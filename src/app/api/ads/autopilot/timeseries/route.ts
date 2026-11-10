@@ -15,8 +15,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Google Ads niet verbonden" }, { status: 500 });
     }
     const accountId = request.nextUrl.searchParams.get("accountId") || ADS_ACCOUNTS[0];
+    const campaignId = request.nextUrl.searchParams.get("campaignId") || undefined;
     const accessToken = await getAdAccessToken();
-    const { byDate } = await fetchDailyTotals(accessToken, accountId, "LAST_30_DAYS");
+    const { byDate } = await fetchDailyTotals(accessToken, accountId, "LAST_30_DAYS", campaignId);
 
     const days = Object.entries(byDate)
       .sort(([a], [b]) => a.localeCompare(b))

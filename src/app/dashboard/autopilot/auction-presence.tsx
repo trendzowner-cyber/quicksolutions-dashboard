@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Swords, Upload, RefreshCw, TrendingUp, TrendingDown, Info, X, Search as SearchIcon, Download } from "lucide-react";
 import {
-  BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import { dateShort } from "@/lib/format";
 
@@ -72,6 +72,120 @@ const TONE_STYLE: Record<string, string> = {
   good: "border-emerald-500/30 bg-emerald-500/5",
   info: "border-blue-500/30 bg-blue-500/5",
 };
+
+// ─── Own impression-share stacked chart ───
+
+interface SharePoint { date: string; share: number; lostRank: number; lostBudget: number }
+type Granularity = "day" | "week" | "month";
+
+const GRAN_LABEL: Record<Granularity, string> = { day: "Dag", week: "Week", month: "Maand" };
+
+function bucketShare(points: SharePoint[], mode: Granularity) {
+  const toPct = (p: SharePoint) => ({
+    share: Math.round(p.share * 1000) / 10,
+    lostRank: Math.round(p.lostRank * 1000) / 10,
+    lostBudget: Math.round(p.lostBudget * 1000) / 10,
+  });
+  if (mode === "day") {
+    return points.map((p) => ({ label: dateShort(p.date), ...toPct(p) }));
+  }
+  const groups = new Map<string, SharePoint[]>();
+  for (const p of points) {
+    let key: string;
+    if (mode === "month") {
+      key = p.date.slice(0, 7);
+    } else {
+      // ISO week → key on that week's Monday
+      const d = new Date(p.date + "T00:00:00");
+      d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+      key = d.toISOString().slice(0, 10);
+    }
+    const arr = groups.get(key) ?? [];
+    arr.push(p);
+    groups.set(key, arr);
+  }
+  return [...groups.entries()].map(([key, arr]) => {
+    const avg = (f: (p: SharePoint) => number) => arr.reduce((s, p) => s + f(p), 0) / arr.length;
+    return {
+      label: mode === "month"
+        ? new Date(key + "-01T00:00:00").toLocaleDateString("nl-BE", { month: "short", year: "numeric" })
+        : `w ${dateShort(key)}`,
+      share: Math.round(avg((p) => p.share) * 1000) / 10,
+      lostRank: Math.round(avg((p) => p.lostRank) * 1000) / 10,
+      lostBudget: Math.round(avg((p) => p.lostBudget) * 1000) / 10,
+    };
+  });
+}
+
+function OwnShareCard() {
+  const [series, setSeries] = useState<SharePoint[] | null>(null);
+  const [gran, setGran] = useState<Granularity>("day");
+
+  useEffect(() => {
+    fetch("/api/ads/inventory")
+      .then((r) => r.json())
+      .then((d) => setSeries(d.impressionShare ?? []))
+      .catch(() => setSeries([]));
+  }, []);
+
+  const data = series ? bucketShare(series, gran) : [];
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+        <div>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <TrendingUp className="h-5 w-5 text-google" /> Jouw aandeel in de veiling
+          </CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Search impression share van je eigen account — hoeveel van de veilingen je wint,
+            en hoeveel je verliest door rank (advertentierangschikking) of budget.
+          </p>
+        </div>
+        <div className="flex gap-1 rounded-lg border border-border p-0.5">
+          {(Object.keys(GRAN_LABEL) as Granularity[]).map((g) => (
+            <button
+              key={g}
+              onClick={() => setGran(g)}
+              className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+                gran === g ? "bg-google/15 text-google font-medium" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {GRAN_LABEL[g]}
+            </button>
+          ))}
+        </div>
+      </CardHeader>
+      <CardContent>
+        {series === null ? (
+          <Skeleton className="h-56 w-full" />
+        ) : !data.length ? (
+          <p className="text-sm text-muted-foreground py-6 text-center">
+            Geen Search-campagnes met impression share in deze periode.
+          </p>
+        ) : (
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={data} margin={{ left: 0, right: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+              <XAxis dataKey="label" tick={{ fontSize: 11 }} className="fill-muted-foreground"
+                interval={Math.max(0, Math.floor(data.length / 12))} />
+              <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} className="fill-muted-foreground"
+                tickFormatter={(v) => `${v}%`} width={42} />
+              <Tooltip
+                contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
+                formatter={(value, name) => [`${Number(value).toFixed(1)}%`, name]}
+              />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Bar dataKey="share" stackId="is" name="Vertoningen" fill="#10b981" />
+              <Bar dataKey="lostRank" stackId="is" name="Verloren: rank" fill="#f59e0b" />
+              <Bar dataKey="lostBudget" stackId="is" name="Verloren: budget" fill="#ef4444" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export function AuctionPresenceSection({ showToast }: { showToast: (m: string) => void }) {
   const [competitors, setCompetitors] = useState<PresenceSummary[] | null>(null);
@@ -342,6 +456,9 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
           )}
         </CardContent>
       </Card>
+
+      {/* Own impression share over time — stacked: won / lost by rank / lost by budget */}
+      <OwnShareCard />
 
       {/* CSV fallback (manual) */}
       <Card>

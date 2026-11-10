@@ -161,6 +161,8 @@ export default function AutopilotPage() {
   const [allKeywords, setAllKeywords] = useState<KeywordRow[] | null>(null);
   const [days, setDays] = useState<DayPoint[] | null>(null);
   const [chartMetric, setChartMetric] = useState<string>("spend");
+  const [chartCampaign, setChartCampaign] = useState<string>("");
+  const [campaignOptions, setCampaignOptions] = useState<{ id: string; name: string }[]>([]);
   const [granularity, setGranularity] = useState<Granularity>("day");
   const [summary, setSummary] = useState<{ waste: number; winners: number; wasteCostMicros: number } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -206,6 +208,22 @@ export default function AutopilotPage() {
   }, [dateRange]);
 
   useEffect(() => { load(false); }, [load]);
+
+  // Campaign list for the chart filter (once per mount — names rarely change)
+  useEffect(() => {
+    fetch(`/api/ads/campaigns?accountId=${ACCOUNT_ID}&dateRange=LAST_30_DAYS`)
+      .then((r) => r.json())
+      .then((d) => setCampaignOptions((d.campaigns ?? []).map((c: { id: string; name: string }) => ({ id: c.id, name: c.name }))))
+      .catch(() => {});
+  }, []);
+
+  // Refetch only the timeseries when the chart campaign filter changes
+  useEffect(() => {
+    fetch(`/api/ads/autopilot/timeseries?accountId=${ACCOUNT_ID}${chartCampaign ? `&campaignId=${chartCampaign}` : ""}`)
+      .then((r) => r.json())
+      .then((ts) => { if (!ts.error) setDays(ts.days ?? []); })
+      .catch(() => {});
+  }, [chartCampaign]);
 
   function showToast(msg: string) {
     setToast(msg);
@@ -414,6 +432,16 @@ export default function AutopilotPage() {
                 Prestaties — {dateRange === "LAST_7_DAYS" ? "7" : dateRange === "LAST_90_DAYS" ? "90" : "30"} dagen
               </CardTitle>
               <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={chartCampaign}
+                  onChange={(e) => setChartCampaign(e.target.value)}
+                  className="max-w-48 truncate rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+                >
+                  <option value="">Alle campagnes</option>
+                  {campaignOptions.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
                 <select
                   value={chartMetric}
                   onChange={(e) => setChartMetric(e.target.value)}

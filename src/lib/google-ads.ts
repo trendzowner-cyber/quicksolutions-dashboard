@@ -220,11 +220,12 @@ const ENRICHED_METRICS = `
       metrics.search_absolute_top_impression_share,
       metrics.all_conversions,`;
 
-function dailyQuery(dateRange: string, enriched: boolean): string {
+function dailyQuery(dateRange: string, enriched: boolean, campaignId?: string): string {
   const today = new Date().toISOString().slice(0, 10);
   const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
 
   let dateFilter = "WHERE campaign.status != 'REMOVED'";
+  if (campaignId && /^\d+$/.test(campaignId)) dateFilter += ` AND campaign.id = ${campaignId}`;
   if (dateRange === "TODAY") dateFilter += ` AND segments.date = '${today}'`;
   else if (dateRange === "YESTERDAY") dateFilter += ` AND segments.date = '${yesterday}'`;
   else if (dateRange === "LAST_7_DAYS") dateFilter += " AND segments.date DURING LAST_7_DAYS";
@@ -274,17 +275,18 @@ function weighted(
 export async function fetchDailyTotals(
   accessToken: string,
   customerId: string,
-  dateRange = "LAST_7_DAYS"
+  dateRange = "LAST_7_DAYS",
+  campaignId?: string
 ): Promise<AdsDailyResult> {
   let enriched = true;
   let res: { results?: Record<string, unknown>[] };
   try {
-    res = await queryGoogleAds(customerId, dailyQuery(dateRange, true), accessToken);
+    res = await queryGoogleAds(customerId, dailyQuery(dateRange, true, campaignId), accessToken);
   } catch {
     // Some campaign types reject the impression-share columns outright. A
     // digest with the basic numbers beats no digest at all.
     enriched = false;
-    res = await queryGoogleAds(customerId, dailyQuery(dateRange, false), accessToken);
+    res = await queryGoogleAds(customerId, dailyQuery(dateRange, false, campaignId), accessToken);
   }
 
   type RatioRows = { value: number; weight: number }[];

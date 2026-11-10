@@ -61,6 +61,12 @@ const TYPE_STYLE: Record<string, { icon: React.ElementType; tile: string; badge:
     badge: "bg-muted text-muted-foreground border border-border",
     label: "Negatief verwijderen",
   },
+  create_campaign: {
+    icon: Plus,
+    tile: "bg-emerald-500/15 text-emerald-500 dark:text-emerald-400",
+    badge: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40",
+    label: "Nieuwe campagne",
+  },
 };
 
 const STATUS_STYLE: Record<string, { cls: string; label: string }> = {

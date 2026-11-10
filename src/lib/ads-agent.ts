@@ -22,14 +22,15 @@ import {
 } from "@/lib/ads-autopilot";
 import { removeNegative } from "@/lib/ads-inventory";
 import { updateRsaTexts, setAdStatus } from "@/lib/ads-creative";
-import { queryGoogleAds } from "@/lib/google-ads";
+import { queryGoogleAds, getAdAccessToken } from "@/lib/google-ads";
 import { callDeepSeekJSON } from "@/lib/deepseek";
 
 export type ProposalType =
   | "add_negatives"
   | "pause_keyword"
   | "set_budget"
-  | "remove_negative";
+  | "remove_negative"
+  | "create_campaign";
 
 export interface NewProposal {
   fingerprint: string;
@@ -320,6 +321,12 @@ export async function executeProposal(id: string, actor: string): Promise<string
   } else if (p.type === "remove_negative") {
     await removeNegative(customerId, String(body.resourceName));
     summary = `Negatief keyword verwijderd: ${String(body.label ?? "")}`;
+  } else if (p.type === "create_campaign") {
+    const { validateCampaignSpec, createCampaign } = await import("@/lib/ads-create-campaign");
+    const spec = validateCampaignSpec(body.spec);
+    const accessToken = await getAdAccessToken();
+    const name = await createCampaign(customerId, accessToken, spec);
+    summary = `Campagne aangemaakt (gepauzeerd): ${name} — ${spec.keywords.length} keywords, ${spec.headlines.length} headlines, €${(spec.dailyBudgetMicros / 1e6).toFixed(0)}/dag`;
   } else {
     throw new Error(`Onbekend type: ${p.type}`);
   }

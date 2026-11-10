@@ -27,6 +27,7 @@ import { AuctionPresenceSection } from "./auction-presence";
 import { AdsSection } from "./ads-section";
 import { ConversionsSection } from "./conversions-section";
 import { AgentSection } from "./agent-section";
+import { CreateCampaignWizard } from "./create-campaign";
 import { ContextSection, BiddingSection, LocationsSection } from "./context-bidding-locations";
 import { AssetsSection } from "./assets-section";
 import { BudgetSection } from "./budget-section";
@@ -838,7 +839,8 @@ export default function AutopilotPage() {
         </TabsContent>
 
         {/* ═══ TAB 4: campaigns + impression share ═══ */}
-        <TabsContent value="campagnes" className="mt-4">
+        <TabsContent value="campagnes" className="mt-4 space-y-4">
+          <CreateCampaignWizard accountId={ACCOUNT_ID} showToast={showToast} />
           <CampaignsSection dateRange={dateRange === "LAST_90_DAYS" ? "LAST_30_DAYS" : dateRange} />
         </TabsContent>
 

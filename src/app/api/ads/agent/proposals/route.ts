@@ -26,20 +26,81 @@ export async function GET(request: NextRequest) {
   });
 }
 
-// POST { id, decision: "approve" | "reject" }
-// Approve = execute immediately against the live account, then log. This is
-// the same write path as the manual actions route, with the same ceilings.
+// POST two shapes:
+//  A) { id, decision: "approve" | "reject" } — decide on a pending proposal.
+//     Approve = execute immediately against the live account, then log. This is
+//     the same write path as the manual actions route, with the same ceilings.
+//  B) { manual: true, type, title, reason, payload } — user-created proposal
+//     (e.g. the create-campaign wizard). Validated and stored as pending;
+//     nothing executes until the user explicitly approves it.
 export async function POST(request: NextRequest) {
   const user = await getSessionUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  let body: { id?: string; decision?: string };
+  let body: {
+    id?: string;
+    decision?: string;
+    manual?: boolean;
+    type?: string;
+    title?: string;
+    reason?: string;
+    payload?: unknown;
+  };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Ongeldige JSON" }, { status: 400 });
   }
+
+  // ---- Manual proposal creation (wizard) ----
+  if (body.manual) {
+    if (body.type !== "create_campaign") {
+      return NextResponse.json({ error: "Alleen create_campaign wordt als handmatig voorstel ondersteund" }, { status: 400 });
+    }
+    const payload = body.payload as { customerId?: string; spec?: unknown } | undefined;
+    if (!payload?.customerId || !payload.spec) {
+      return NextResponse.json({ error: "customerId en spec zijn verplicht" }, { status: 400 });
+    }
+    try {
+      const { validateCampaignSpec } = await import("@/lib/ads-create-campaign");
+      validateCampaignSpec(payload.spec);
+    } catch (err) {
+      return NextResponse.json({ error: `Ongeldige campagne-spec: ${String(err)}` }, { status: 400 });
+    }
+    const title = String(body.title ?? "Nieuwe campagne").slice(0, 200);
+    const reason = String(body.reason ?? "Handmatig aangemaakt via de wizard").slice(0, 500);
+    const fingerprint = `create_campaign:${title.trim().toLowerCase()}`;
+    const dupe = await db.adsAgentProposal.findFirst({
+      where: { status: "pending", fingerprint },
+    });
+    if (dupe) {
+      return NextResponse.json({ error: "Er bestaat al een identiek openstaand voorstel", id: dupe.id }, { status: 409 });
+    }
+    const proposal = await db.adsAgentProposal.create({
+      data: {
+        type: "create_campaign",
+        title,
+        reason,
+        payload: payload as object,
+        fingerprint,
+        status: "pending",
+        decidedBy: null,
+      },
+    });
+    await db.auditLog.create({
+      data: {
+        actorId: user.userId,
+        action: "ads_agent_manual_proposal",
+        entity: "ads_agent_proposal",
+        entityId: proposal.id,
+        metadata: { title, type: "create_campaign" },
+      },
+    });
+    return NextResponse.json({ ok: true, id: proposal.id, status: "pending" });
+  }
+
+  // ---- Approve / reject ----
   const { id, decision } = body;
   if (!id || (decision !== "approve" && decision !== "reject")) {
     return NextResponse.json({ error: "id en decision (approve|reject) zijn verplicht" }, { status: 400 });

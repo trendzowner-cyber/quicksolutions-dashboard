@@ -560,3 +560,30 @@ model AuctionPresence {
   @@index([domain, seenOn])
   @@index([seenOn])
 }
+
+model AdsAgentMemory {
+  id        String   @id @default(cuid())
+  kind      String   // "rule" | "fact" | "preference"
+  text      String
+  source    String   @default("user") // "user" | "agent"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AdsAgentProposal {
+  id          String    @id @default(cuid())
+  fingerprint String    // dedupe key, e.g. "add_negatives:123:repairshop"
+  type        String    // add_negatives | pause_keyword | set_budget | remove_negative
+  title       String
+  reason      String
+  payload     Json
+  status      String    @default("pending") // pending | approved | rejected | executed | failed
+  decidedBy   String?
+  decidedAt   DateTime?
+  executedAt  DateTime?
+  resultMsg   String?
+  createdAt   DateTime  @default(now())
+
+  @@index([fingerprint, status])
+  @@index([status, createdAt])
+}

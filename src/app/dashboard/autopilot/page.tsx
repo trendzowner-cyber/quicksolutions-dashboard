@@ -25,6 +25,7 @@ import { CampaignsSection, KeywordsSection, NegativesSection } from "./inventory
 import { AuctionPresenceSection } from "./auction-presence";
 import { AdsSection } from "./ads-section";
 import { ConversionsSection } from "./conversions-section";
+import { AgentSection } from "./agent-section";
 import { MiniMarkdown } from "@/components/ui/mini-markdown";
 
 // ─── Types (mirror of src/lib/ads-autopilot.ts, ads-audit.ts, ads-auction.ts) ───
@@ -251,11 +252,14 @@ export default function AutopilotPage() {
         </div>
       )}
 
-      <Tabs defaultValue="optimalisatie">
-        {/* Sticky tab bar — single scrollable row so 9 tabs never wrap/overlap */}
+      <Tabs defaultValue="agent">
+        {/* Sticky tab bar — single scrollable row so tabs never wrap/overlap */}
         <div className="sticky top-0 z-30 -mx-1 border-b border-border bg-background/95 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
           <div className="overflow-x-auto [scrollbar-width:thin] [scrollbar-color:var(--border)_transparent]">
             <TabsList className="w-max flex-nowrap">
+            <TabsTrigger value="agent" className="flex-none gap-2 text-sm">
+              <Sparkles className="h-4 w-4" /> Agent
+            </TabsTrigger>
             <TabsTrigger value="optimalisatie" className="flex-none gap-2 text-sm">
               <Radar className="h-4 w-4" /> Optimalisatie
             </TabsTrigger>
@@ -286,6 +290,11 @@ export default function AutopilotPage() {
             </TabsList>
           </div>
         </div>
+
+        {/* ═══ TAB 0: agent (approval-mode autopilot) ═══ */}
+        <TabsContent value="agent" className="mt-4">
+          <AgentSection accountId={ACCOUNT_ID} showToast={showToast} />
+        </TabsContent>
 
         {/* ═══ TAB 1: optimization (waste finder, budgets, keywords) ═══ */}
         <TabsContent value="optimalisatie" className="mt-4 space-y-6">

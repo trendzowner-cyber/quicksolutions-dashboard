@@ -32,7 +32,7 @@ export async function fetchCampaignAssets(
 ): Promise<CampaignAssets[]> {
   const res = await queryGoogleAds(customerId, `
     SELECT
-      campaign.id, campaign.name,
+      campaign.id, campaign.name, campaign.status,
       campaign_asset.resource_name, campaign_asset.status,
       asset.type,
       asset.sitelink_asset.link_text,

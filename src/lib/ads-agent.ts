@@ -22,6 +22,7 @@ import {
 } from "@/lib/ads-autopilot";
 import { removeNegative } from "@/lib/ads-inventory";
 import { updateRsaTexts, setAdStatus } from "@/lib/ads-creative";
+import { queryGoogleAds } from "@/lib/google-ads";
 import { callDeepSeekJSON } from "@/lib/deepseek";
 
 export type ProposalType =
@@ -40,19 +41,146 @@ export interface NewProposal {
 
 // ─── Memory ───
 
-export async function getMemory(): Promise<{ rules: string[]; facts: string[] }> {
+export async function getMemory(): Promise<{ rules: string[]; facts: string[]; profile: string | null }> {
   const rows = await db.adsAgentMemory.findMany({ orderBy: { createdAt: "asc" } });
   return {
     rules: rows.filter((r) => r.kind === "rule").map((r) => r.text),
-    facts: rows.filter((r) => r.kind !== "rule").map((r) => r.text),
+    facts: rows.filter((r) => r.kind === "fact" || r.kind === "preference").map((r) => r.text),
+    profile: rows.find((r) => r.kind === "profile")?.text ?? null,
   };
 }
 
-function memoryText(mem: { rules: string[]; facts: string[] }): string {
+function memoryText(mem: { rules: string[]; facts: string[]; profile?: string | null }): string {
   const parts: string[] = [];
+  if (mem.profile) parts.push(`Bedrijfsprofiel:\n${mem.profile}`);
   if (mem.rules.length) parts.push("Regels die je ALTIJD moet volgen:\n- " + mem.rules.join("\n- "));
   if (mem.facts.length) parts.push("Feiten over het bedrijf:\n- " + mem.facts.join("\n- "));
   return parts.join("\n\n");
+}
+
+// ─── Account brain — the full picture the agent reasons over ───
+// Two aggregated GAQL passes (30d + 7d per campaign, no date segments) give the
+// agent real numbers AND a trend: is a campaign accelerating or dying?
+
+interface BrainCampaign {
+  id: string;
+  name: string;
+  status: string;
+  channel: string;
+  cost30: number; clicks30: number; conv30: number; value30: number; impr30: number;
+  cost7: number; clicks7: number; conv7: number;
+}
+
+interface AccountBrain {
+  campaigns: BrainCampaign[];
+  totals30: { cost: number; clicks: number; conv: number; value: number; impr: number };
+  totals7: { cost: number; clicks: number; conv: number };
+}
+
+async function fetchAccountBrain(accessToken: string, customerId: string): Promise<AccountBrain> {
+  const run = async (range: string) => {
+    const res = await queryGoogleAds(customerId, `
+      SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type,
+             metrics.impressions, metrics.clicks, metrics.cost_micros,
+             metrics.conversions, metrics.conversions_value
+      FROM campaign
+      WHERE campaign.status != 'REMOVED' AND segments.date DURING ${range}
+      LIMIT 300
+    `, accessToken);
+    return (res.results ?? []) as Record<string, Record<string, unknown>>[];
+  };
+
+  const [rows30, rows7] = await Promise.all([run("LAST_30_DAYS"), run("LAST_7_DAYS")]);
+  const num = (v: unknown) => Number(v ?? 0) || 0;
+  const eur = (m: Record<string, unknown>) => num(m.costMicros ?? m.cost_micros) / 1e6;
+
+  const by7 = new Map<string, { cost: number; clicks: number; conv: number }>();
+  for (const r of rows7) {
+    const c = r.campaign ?? {};
+    const m = r.metrics ?? {};
+    by7.set(String(c.id), { cost: eur(m), clicks: num(m.clicks), conv: num(m.conversions) });
+  }
+
+  const campaigns: BrainCampaign[] = [];
+  const totals30 = { cost: 0, clicks: 0, conv: 0, value: 0, impr: 0 };
+  const totals7 = { cost: 0, clicks: 0, conv: 0 };
+
+  for (const r of rows30) {
+    const c = r.campaign ?? {};
+    const m = r.metrics ?? {};
+    const id = String(c.id);
+    const b7 = by7.get(id) ?? { cost: 0, clicks: 0, conv: 0 };
+    const row: BrainCampaign = {
+      id,
+      name: String(c.name ?? ""),
+      status: String(c.status ?? ""),
+      channel: String(c.advertisingChannelType ?? c.advertising_channel_type ?? ""),
+      cost30: eur(m), clicks30: num(m.clicks), conv30: num(m.conversions),
+      value30: num(m.conversionsValue ?? m.conversions_value), impr30: num(m.impressions),
+      cost7: b7.cost, clicks7: b7.clicks, conv7: b7.conv,
+    };
+    campaigns.push(row);
+    totals30.cost += row.cost30; totals30.clicks += row.clicks30; totals30.conv += row.conv30;
+    totals30.value += row.value30; totals30.impr += row.impr30;
+    totals7.cost += b7.cost; totals7.clicks += b7.clicks; totals7.conv += b7.conv;
+  }
+
+  campaigns.sort((a, b) => b.cost30 - a.cost30);
+  return { campaigns, totals30, totals7 };
+}
+
+function brainText(brain: AccountBrain): string {
+  const { totals30: t, totals7: w } = brain;
+  const daily30 = t.cost / 30;
+  const daily7 = w.cost / 7;
+  const trendPct = daily30 > 0 ? Math.round(((daily7 - daily30) / daily30) * 100) : 0;
+  const trend = trendPct > 10 ? `stijgt (+${trendPct}%)` : trendPct < -10 ? `daalt (${trendPct}%)` : "stabiel";
+
+  const lines = brain.campaigns.slice(0, 20).map((c) => {
+    const cpa = c.conv30 > 0 ? `CPA €${(c.cost30 / c.conv30).toFixed(0)}` : "geen conv";
+    const roas = c.cost30 > 0 && c.value30 > 0 ? `ROAS ${(c.value30 / c.cost30).toFixed(1)}` : null;
+    const ctr = c.impr30 > 0 ? `CTR ${((c.clicks30 / c.impr30) * 100).toFixed(1)}%` : null;
+    return `- ${c.name} [${c.channel}${c.status !== "ENABLED" ? `, ${c.status}` : ""}] 30d: €${c.cost30.toFixed(0)}, ${c.clicks30} kliks, ${c.conv30.toFixed(1)} conv, ${cpa}${roas ? `, ${roas}` : ""}${ctr ? `, ${ctr}` : ""} | 7d: €${c.cost7.toFixed(0)}, ${c.conv7.toFixed(1)} conv`;
+  });
+
+  return [
+    `ACCOUNT laatste 30 dagen: €${t.cost.toFixed(0)} spend, ${t.clicks} kliks, ${t.impr.toLocaleString("nl-BE")} vertoningen, ${t.conv.toFixed(1)} conversies, €${t.value.toFixed(0)} waarde${t.conv > 0 ? `, CPA €${(t.cost / t.conv).toFixed(0)}` : ""}.`,
+    `Trend: dagelijkse spend ${trend} (7d: €${daily7.toFixed(0)}/dag vs 30d-gemiddelde €${daily30.toFixed(0)}/dag), conversies 7d: ${w.conv.toFixed(1)}.`,
+    `CAMPAGNES op kosten (30d | 7d):\n${lines.join("\n")}`,
+  ].join("\n");
+}
+
+// ─── Self-learning memory ───
+// After each chat turn the agent extracts durable facts/rules/preferences from
+// what the user said ("Gent is prioriteit", "raak merkcampagne nooit aan") and
+// stores them — so you never have to repeat yourself.
+
+async function learnFromChatTurn(question: string, answer: string): Promise<string[]> {
+  const mem = await getMemory();
+  const existing = new Set(
+    [...mem.rules, ...mem.facts, ...(mem.profile ? [mem.profile] : [])]
+      .map((t) => t.trim().toLowerCase())
+  );
+  try {
+    const out = await callDeepSeekJSON<{ memory: { kind: string; text: string }[] }>({
+      systemPrompt: `Je beheert het langetermijngeheugen van een Google Ads-agent voor een reparatieshop. Haal uit de gebruikersvraag ALLEEN duurzame, herbruikbare informatie: voorkeuren, prioriteiten, regels, bedrijfsfeiten (bv. "Gent is prioriteit", "nooit aan merkcampagne komen", "wij repareren geen tablets"). GEEN eenmalige vragen, cijfers of smalltalk. Antwoord als JSON {"memory":[{"kind":"rule|fact|preference","text":"korte NL zin"}]} — lege array als er niets te leren valt. Max 2 items.`,
+      userPrompt: `Gebruiker zei: "${question}"\nAgent antwoordde (context): "${answer.slice(0, 600)}"`,
+      temperature: 0.2,
+      maxTokens: 300,
+    });
+    const learned: string[] = [];
+    for (const m of (out.memory ?? []).slice(0, 2)) {
+      const text = String(m.text ?? "").trim();
+      const kind = ["rule", "fact", "preference"].includes(m.kind) ? m.kind : "fact";
+      if (!text || text.length > 500 || existing.has(text.toLowerCase())) continue;
+      await db.adsAgentMemory.create({ data: { kind, text, source: "agent" } });
+      existing.add(text.toLowerCase());
+      learned.push(text);
+    }
+    return learned;
+  } catch {
+    return []; // learning is best-effort, never blocks the chat
+  }
 }
 
 // ─── Proposal generation ───
@@ -221,6 +349,8 @@ export interface ChatResult {
   answer: string;
   /** Pending proposals created from this turn (already in the review list). */
   proposals: ChatProposalView[];
+  /** New durable memory the agent stored from this turn. */
+  learned: string[];
 }
 
 interface ChatData {
@@ -233,24 +363,25 @@ interface ChatData {
 async function buildChatData(accessToken: string, customerId: string): Promise<ChatData> {
   const mem = await getMemory();
   const clause = dateClause("LAST_30_DAYS");
-  const [rawTerms, budgets, keywords] = await Promise.all([
+  const [rawTerms, budgets, keywords, brain] = await Promise.all([
     fetchSearchTerms(accessToken, customerId, clause),
     fetchBudgetAdvice(accessToken, customerId, "LAST_30_DAYS"),
     fetchKeywordFlags(accessToken, customerId, "LAST_30_DAYS"),
+    fetchAccountBrain(accessToken, customerId),
   ]);
   const terms = analyzeSearchTerms(rawTerms);
   const waste = terms.filter((t) => t.verdict === "waste" || t.verdict === "review");
   const pauseCandidates = keywords.filter((k) => k.flag === "pause_candidate");
 
-  // Context: compact summary for the answer + actionable blocks with the exact
-  // resource names the model may reference in proposals.
+  // The agent's working memory for this turn: full account picture first,
+  // then the actionable lists with the exact resource names proposals may use.
   const contextText = [
-    `Account: ${customerId}, periode: laatste 30 dagen.`,
+    brainText(brain),
+    memoryText(mem),
     `Verspillende/beoordelen zoektermen (${waste.length}):\n${waste.slice(0, 25).map((t) => `- "${t.term}" — campagneId ${t.campaignId} (${t.campaignName}), €${(t.costMicros / 1e6).toFixed(0)}, ${t.clicks} kliks, 0 conv`).join("\n")}`,
     `Pauze-kandidaten keywords (${pauseCandidates.length}):\n${pauseCandidates.slice(0, 25).map((k) => `- "${k.text}" [${k.resourceName}] — ${k.campaignName}, €${(k.costMicros / 1e6).toFixed(0)}, ${k.reason}`).join("\n")}`,
     `Budgetadviezen:\n${budgets.map((b) => `- ${b.campaignName}: ${b.action}, huidig €${(b.dailyBudgetMicros / 1e6).toFixed(0)}/dag → voorgesteld €${(b.suggestedDailyBudgetMicros / 1e6).toFixed(0)}/dag (${b.suggestedDailyBudgetMicros} micros)${b.budgetResourceName ? ` [${b.budgetResourceName}]` : " [geen budget-resource]"}`).join("\n")}`,
-    memoryText(mem),
-  ].join("\n\n");
+  ].filter(Boolean).join("\n\n");
 
   return {
     contextText,
@@ -348,7 +479,9 @@ export async function chatWithAgent(
     : "";
 
   const raw = await callDeepSeekJSON<{ answer: string; proposals?: unknown[] }>({
-    systemPrompt: `Je bent de Google Ads-agent van QuickSolutions, een reparatieshop in Gent. Je chat met de eigenaar. Antwoord in het Nederlands, kort en concreet, op basis van de account-data hieronder. Verzin geen cijfers die er niet staan. Je mag verwijzen naar eerdere beurten in het gesprek.
+    systemPrompt: `Je bent de senior Google Ads-consultant van QuickSolutions, een Belgische computer- en smartphone-reparatiezaak. Je kent dit account vanbuiten: de ACCOUNT- en CAMPAAGNES-secties hieronder zijn je eigen analyse, altijd actueel. Praat als een collega die de cijfers kent — nooit "ik zou moeten nakijken", je hebt de data al.
+
+Stijl: Vlaams Nederlands, direct en concreet. Gebruik echte cijfers uit de data. Verzin niets; staat iets er niet, zeg dan eerlijk welke data ontbreekt. Denk mee als een marketeer: benoem trends, kruisverbanden tussen campagnes, en wat de beste volgende stap is. Verwijs gerust naar eerdere beurten in het gesprek. Volg de REGELS uit het geheugen altijd.
 
 Je kunt ook ACTIES voorstellen. Als de gebruiker vraagt iets te doen (zoekterm blokkeren, keyword pauzeren, budget aanpassen), voeg dan "proposals" toe aan je JSON. Regels:
 - Gebruik ALLEEN resource-namen, campagneIds en bedragen die letterlijk in de data hieronder staan — verzin er nooit zelf.
@@ -383,7 +516,10 @@ Antwoord als JSON {"answer":"...","proposals":[...]} — answer mag Markdown geb
     created.push({ id: row.id, type: row.type, title: row.title, reason: row.reason });
   }
 
-  return { answer: raw.answer, proposals: created };
+  // Learn durable facts/rules from this turn (so nothing needs repeating)
+  const learned = await learnFromChatTurn(question, raw.answer);
+
+  return { answer: raw.answer, proposals: created, learned };
 }
 
 export { WASTE_RULES };

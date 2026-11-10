@@ -86,6 +86,7 @@ export async function POST(request: NextRequest) {
       userMessage: { id: userMsg.id, role: "user", content: message, createdAt: userMsg.createdAt },
       assistantMessage: { id: assistantMsg.id, role: "assistant", content: result.answer, createdAt: assistantMsg.createdAt },
       proposals: result.proposals,
+      learned: result.learned,
     });
   } catch (err) {
     console.error("Agent chat mislukt:", err);

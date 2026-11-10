@@ -18,6 +18,7 @@ interface ChatMessage {
   content: string;
   createdAt: string;
   proposals?: ChatProposal[];
+  learned?: string[];
 }
 
 interface ChatProposal {
@@ -97,6 +98,7 @@ export function AgentChat({
       const assistantMsg: ChatMessage = {
         ...data.assistantMessage,
         proposals: (data.proposals ?? []).map((p: ChatProposal) => ({ ...p, state: "pending" as const })),
+        learned: data.learned ?? [],
       };
       setMessages((m) => [
         ...(m ?? []).filter((x) => x.id !== optimistic.id),
@@ -274,6 +276,11 @@ export function AgentChat({
                       </div>
                     ))}
                     <p className="mt-1 text-[10px] text-muted-foreground">{timeAgo(m.createdAt)}</p>
+                    {m.learned && m.learned.length > 0 && (
+                      <p className="mt-1 text-[10px] text-google">
+                        🧠 Onthouden: {m.learned.join(" · ")}
+                      </p>
+                    )}
                   </div>
                 </div>
               )

@@ -161,6 +161,8 @@ export default function AutopilotPage() {
   const [keywords, setKeywords] = useState<KeywordRow[] | null>(null);
   const [allKeywords, setAllKeywords] = useState<KeywordRow[] | null>(null);
   const [days, setDays] = useState<DayPoint[] | null>(null);
+  const [channelDays, setChannelDays] = useState<{ fullDate: string; search: number; pmax: number; demandGen: number; other: number }[] | null>(null);
+  const [chartStacked, setChartStacked] = useState(false);
   const [chartMetric, setChartMetric] = useState<string>("spend");
   const [chartCampaign, setChartCampaign] = useState<string>("");
   const [campaignOptions, setCampaignOptions] = useState<{ id: string; name: string }[]>([]);
@@ -200,6 +202,7 @@ export default function AutopilotPage() {
       setAllKeywords(kw.rows ?? []);
       setKeywords((kw.rows ?? []).filter((k: KeywordRow) => k.flag === "pause_candidate"));
       setDays(ts.days ?? []);
+      setChannelDays(ts.channelDays ?? []);
     } catch (e) {
       setError(String(e));
     } finally {
@@ -222,7 +225,7 @@ export default function AutopilotPage() {
   useEffect(() => {
     fetch(`/api/ads/autopilot/timeseries?accountId=${ACCOUNT_ID}${chartCampaign ? `&campaignId=${chartCampaign}` : ""}`)
       .then((r) => r.json())
-      .then((ts) => { if (!ts.error) setDays(ts.days ?? []); })
+      .then((ts) => { if (!ts.error) { setDays(ts.days ?? []); setChannelDays(ts.channelDays ?? []); } })
       .catch(() => {});
   }, [chartCampaign]);
 
@@ -466,11 +469,75 @@ export default function AutopilotPage() {
                     </button>
                   ))}
                 </div>
+                {chartMetric === "spend" && channelDays && channelDays.length > 0 && (
+                  <button
+                    onClick={() => setChartStacked(!chartStacked)}
+                    className={`px-2.5 py-1.5 text-xs rounded-md border transition-colors ${chartStacked ? "border-google/40 bg-google/10 text-google font-medium" : "border-border text-muted-foreground hover:text-foreground"}`}
+                  >
+                    Gestapeld per type
+                  </button>
+                )}
               </div>
             </CardHeader>
             <CardContent>
               {loading || !days ? (
                 <Skeleton className="h-56 w-full" />
+              ) : chartStacked && channelDays && channelDays.length > 0 ? (
+                (() => {
+                  // Stacked by channel type — Search / PMax / Demand Gen / Other
+                  const CH_COLORS: Record<string, { label: string; color: string }> = {
+                    search: { label: "Search", color: "#3b82f6" },
+                    pmax: { label: "PMax", color: "#8b5cf6" },
+                    demandGen: { label: "Demand Gen", color: "#f59e0b" },
+                    other: { label: "Overig", color: "#6b7280" },
+                  };
+                  // Aggregate channel days by granularity
+                  const buckets = new Map<string, { search: number; pmax: number; demandGen: number; other: number }>();
+                  for (const d of channelDays) {
+                    let key: string;
+                    if (granularity === "month") key = d.fullDate.slice(0, 7);
+                    else if (granularity === "week") {
+                      const dt = new Date(d.fullDate + "T00:00:00");
+                      dt.setDate(dt.getDate() - ((dt.getDay() + 6) % 7));
+                      key = dt.toISOString().slice(0, 10);
+                    } else key = d.fullDate;
+                    const cur = buckets.get(key) ?? { search: 0, pmax: 0, demandGen: 0, other: 0 };
+                    cur.search += d.search; cur.pmax += d.pmax; cur.demandGen += d.demandGen; cur.other += d.other;
+                    buckets.set(key, cur);
+                  }
+                  const stackData = [...buckets.entries()].map(([key, v]) => ({
+                    label: granularity === "month"
+                      ? MONTH_NL[Number(key.slice(5)) - 1]
+                      : granularity === "week" ? `wk ${key.slice(5)}` : key.slice(5),
+                    ...v,
+                  }));
+                  return (
+                    <>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2">
+                        {Object.values(CH_COLORS).map((c) => (
+                          <span key={c.label} className="flex items-center gap-1.5">
+                            <span className="inline-block h-2 w-4 rounded" style={{ background: c.color }} /> {c.label}
+                          </span>
+                        ))}
+                      </div>
+                      <ResponsiveContainer width="100%" height={220}>
+                        <BarChart data={stackData}>
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+                          <XAxis dataKey="label" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
+                          <YAxis tick={{ fontSize: 11 }} className="fill-muted-foreground" tickFormatter={(v) => `€${Number(v).toFixed(0)}`} />
+                          <Tooltip
+                            contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
+                            formatter={(value, name) => [`€${Number(value).toFixed(2)}`, CH_COLORS[name as string]?.label ?? name]}
+                          />
+                          <Bar dataKey="search" stackId="ch" fill={CH_COLORS.search.color} name="search" />
+                          <Bar dataKey="pmax" stackId="ch" fill={CH_COLORS.pmax.color} name="pmax" />
+                          <Bar dataKey="demandGen" stackId="ch" fill={CH_COLORS.demandGen.color} name="demandGen" />
+                          <Bar dataKey="other" stackId="ch" fill={CH_COLORS.other.color} name="other" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </>
+                  );
+                })()
               ) : (
                 (() => {
                   const m = CHART_METRICS[chartMetric];

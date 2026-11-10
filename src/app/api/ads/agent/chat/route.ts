@@ -75,16 +75,17 @@ export async function POST(request: NextRequest) {
       .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
     const accessToken = await getAdAccessToken();
-    const answer = await chatWithAgent(accessToken, accountId, history, message);
+    const result = await chatWithAgent(accessToken, accountId, history, message);
 
     const assistantMsg = await db.adsAgentChatMessage.create({
-      data: { accountId, role: "assistant", content: answer },
+      data: { accountId, role: "assistant", content: result.answer },
     });
 
     return NextResponse.json({
       ok: true,
       userMessage: { id: userMsg.id, role: "user", content: message, createdAt: userMsg.createdAt },
-      assistantMessage: { id: assistantMsg.id, role: "assistant", content: answer, createdAt: assistantMsg.createdAt },
+      assistantMessage: { id: assistantMsg.id, role: "assistant", content: result.answer, createdAt: assistantMsg.createdAt },
+      proposals: result.proposals,
     });
   } catch (err) {
     console.error("Agent chat mislukt:", err);

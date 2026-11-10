@@ -206,26 +206,118 @@ export async function executeProposal(id: string, actor: string): Promise<string
   return summary;
 }
 
-// ─── Ask the agent — chat with account context + memory ───
+// ─── Chat with the agent — multi-turn + actionable proposals ───
 
 export interface ChatTurn { role: "user" | "assistant"; content: string }
 
-async function buildChatContext(accessToken: string, customerId: string): Promise<string> {
+export interface ChatProposalView {
+  id: string;
+  type: string;
+  title: string;
+  reason: string;
+}
+
+export interface ChatResult {
+  answer: string;
+  /** Pending proposals created from this turn (already in the review list). */
+  proposals: ChatProposalView[];
+}
+
+interface ChatData {
+  contextText: string;
+  waste: { term: string; campaignId: string; campaignName: string; costMicros: number; clicks: number }[];
+  pauseCandidates: { resourceName: string; text: string; campaignName: string; costMicros: number; reason: string }[];
+  budgets: { campaignId: string; campaignName: string; budgetResourceName: string | null; dailyBudgetMicros: number; suggestedDailyBudgetMicros: number; action: string; reason: string }[];
+}
+
+async function buildChatData(accessToken: string, customerId: string): Promise<ChatData> {
   const mem = await getMemory();
   const clause = dateClause("LAST_30_DAYS");
-  const [rawTerms, budgets] = await Promise.all([
+  const [rawTerms, budgets, keywords] = await Promise.all([
     fetchSearchTerms(accessToken, customerId, clause),
     fetchBudgetAdvice(accessToken, customerId, "LAST_30_DAYS"),
+    fetchKeywordFlags(accessToken, customerId, "LAST_30_DAYS"),
   ]);
   const terms = analyzeSearchTerms(rawTerms);
   const waste = terms.filter((t) => t.verdict === "waste" || t.verdict === "review");
+  const pauseCandidates = keywords.filter((k) => k.flag === "pause_candidate");
 
-  return [
+  // Context: compact summary for the answer + actionable blocks with the exact
+  // resource names the model may reference in proposals.
+  const contextText = [
     `Account: ${customerId}, periode: laatste 30 dagen.`,
-    `Verspillende/beoordelen zoektermen (${waste.length}): ${waste.slice(0, 15).map((t) => `"${t.term}" €${(t.costMicros / 1e6).toFixed(0)}`).join(", ")}`,
-    `Budgetadviezen: ${budgets.map((b) => `${b.campaignName}: ${b.action} (€${(b.dailyBudgetMicros / 1e6).toFixed(0)}/dag, ROAS ${b.roas?.toFixed(1) ?? "—"})`).join("; ")}`,
+    `Verspillende/beoordelen zoektermen (${waste.length}):\n${waste.slice(0, 25).map((t) => `- "${t.term}" — campagneId ${t.campaignId} (${t.campaignName}), €${(t.costMicros / 1e6).toFixed(0)}, ${t.clicks} kliks, 0 conv`).join("\n")}`,
+    `Pauze-kandidaten keywords (${pauseCandidates.length}):\n${pauseCandidates.slice(0, 25).map((k) => `- "${k.text}" [${k.resourceName}] — ${k.campaignName}, €${(k.costMicros / 1e6).toFixed(0)}, ${k.reason}`).join("\n")}`,
+    `Budgetadviezen:\n${budgets.map((b) => `- ${b.campaignName}: ${b.action}, huidig €${(b.dailyBudgetMicros / 1e6).toFixed(0)}/dag → voorgesteld €${(b.suggestedDailyBudgetMicros / 1e6).toFixed(0)}/dag (${b.suggestedDailyBudgetMicros} micros)${b.budgetResourceName ? ` [${b.budgetResourceName}]` : " [geen budget-resource]"}`).join("\n")}`,
     memoryText(mem),
   ].join("\n\n");
+
+  return {
+    contextText,
+    waste: waste.map((t) => ({ term: t.term, campaignId: t.campaignId, campaignName: t.campaignName, costMicros: t.costMicros, clicks: t.clicks })),
+    pauseCandidates: pauseCandidates.map((k) => ({ resourceName: k.resourceName, text: k.text, campaignName: k.campaignName, costMicros: k.costMicros, reason: k.reason })),
+    budgets: budgets.map((b) => ({ campaignId: b.campaignId, campaignName: b.campaignName, budgetResourceName: b.budgetResourceName ?? null, dailyBudgetMicros: b.dailyBudgetMicros, suggestedDailyBudgetMicros: b.suggestedDailyBudgetMicros, action: b.action, reason: b.reason })),
+  };
+}
+
+/** The model proposes; we validate against the fresh data. Anything referencing
+ *  a resource name or amount that is not in the data is dropped — never trust
+ *  the model with live writes. */
+function validateChatProposals(
+  raw: unknown,
+  data: ChatData,
+  customerId: string
+): NewProposal[] {
+  if (!Array.isArray(raw)) return [];
+  const out: NewProposal[] = [];
+
+  for (const item of raw.slice(0, 5)) {
+    const p = item as Record<string, unknown>;
+    const type = String(p.type ?? "");
+    const title = String(p.title ?? "").slice(0, 120);
+    const reason = String(p.reason ?? "").slice(0, 500);
+    if (!title) continue;
+
+    if (type === "add_negatives") {
+      const campaignId = String(p.campaignId ?? "");
+      const known = data.waste.filter((t) => t.campaignId === campaignId);
+      if (!known.length) continue;
+      const allowed = new Set(known.map((t) => t.term.toLowerCase()));
+      const terms = (Array.isArray(p.terms) ? p.terms : [])
+        .map(String).filter((t) => allowed.has(t.toLowerCase())).slice(0, 20);
+      if (!terms.length) continue;
+      out.push({
+        fingerprint: `chat:add_negatives:${campaignId}:${terms.map((t) => t.toLowerCase()).sort().join("|")}`,
+        type, title,
+        reason: reason || "Voorgesteld vanuit de chat.",
+        payload: { customerId, campaignId, terms },
+      });
+    } else if (type === "pause_keyword") {
+      const rn = String(p.criterionResourceName ?? "");
+      const kw = data.pauseCandidates.find((k) => k.resourceName === rn);
+      if (!kw) continue;
+      out.push({
+        fingerprint: `pause_keyword:${rn}`,
+        type, title,
+        reason: reason || `${kw.reason} (campagne: ${kw.campaignName}).`,
+        payload: { customerId, criterionResourceName: rn, label: kw.text },
+      });
+    } else if (type === "set_budget") {
+      const brn = String(p.budgetResourceName ?? "");
+      const b = data.budgets.find((x) => x.budgetResourceName === brn);
+      if (!b || !b.budgetResourceName) continue;
+      // Amount is FORCED to the computed suggestion — the model may propose
+      // the action, never the number.
+      out.push({
+        fingerprint: `set_budget:${b.campaignId}:${b.suggestedDailyBudgetMicros}`,
+        type, title,
+        reason: reason || b.reason,
+        payload: { customerId, budgetResourceName: b.budgetResourceName, amountMicros: b.suggestedDailyBudgetMicros, label: b.campaignName },
+      });
+    }
+    // remove_negative and anything else: not chat-proposable (needs live list)
+  }
+  return out;
 }
 
 /** Single-shot variant kept for callers that don't need history (e.g. Telegram). */
@@ -234,17 +326,20 @@ export async function askAgent(
   customerId: string,
   question: string
 ): Promise<string> {
-  return chatWithAgent(accessToken, customerId, [], question);
+  const r = await chatWithAgent(accessToken, customerId, [], question);
+  return r.answer;
 }
 
-/** Multi-turn chat: prior turns are folded into the prompt so follow-ups work. */
+/** Multi-turn chat with tool use: the model answers AND may draft proposals.
+ *  Valid proposals are persisted as pending — nothing executes without the
+ *  human approval click, same as the scheduled agent. */
 export async function chatWithAgent(
   accessToken: string,
   customerId: string,
   history: ChatTurn[],
   question: string
-): Promise<string> {
-  const context = await buildChatContext(accessToken, customerId);
+): Promise<ChatResult> {
+  const data = await buildChatData(accessToken, customerId);
 
   const historyBlock = history.length
     ? `\n\nEerdere conversatie:\n${history
@@ -252,13 +347,43 @@ export async function chatWithAgent(
         .join("\n")}`
     : "";
 
-  const answer = await callDeepSeekJSON<{ answer: string }>({
-    systemPrompt: `Je bent de Google Ads-agent van QuickSolutions, een reparatieshop in Gent. Je chat met de eigenaar. Antwoord in het Nederlands, kort en concreet, op basis van de account-data hieronder. Verzin geen cijfers die er niet staan. Je mag verwijzen naar eerdere beurten in het gesprek. Antwoord als JSON {"answer":"..."} — de answer mag Markdown gebruiken.`,
-    userPrompt: `${context}${historyBlock}\n\nGebruiker: ${question}`,
+  const raw = await callDeepSeekJSON<{ answer: string; proposals?: unknown[] }>({
+    systemPrompt: `Je bent de Google Ads-agent van QuickSolutions, een reparatieshop in Gent. Je chat met de eigenaar. Antwoord in het Nederlands, kort en concreet, op basis van de account-data hieronder. Verzin geen cijfers die er niet staan. Je mag verwijzen naar eerdere beurten in het gesprek.
+
+Je kunt ook ACTIES voorstellen. Als de gebruiker vraagt iets te doen (zoekterm blokkeren, keyword pauzeren, budget aanpassen), voeg dan "proposals" toe aan je JSON. Regels:
+- Gebruik ALLEEN resource-namen, campagneIds en bedragen die letterlijk in de data hieronder staan — verzin er nooit zelf.
+- add_negatives: {"type":"add_negatives","title":"...","reason":"...","campaignId":"...","terms":["..."]} — alleen zoektermen uit de verspilling-lijst.
+- pause_keyword: {"type":"pause_keyword","title":"...","reason":"...","criterionResourceName":"..."} — alleen uit pauze-kandidaten.
+- set_budget: {"type":"set_budget","title":"...","reason":"...","budgetResourceName":"..."} — het bedrag wordt automatisch het voorgestelde bedrag uit de data.
+- Max 5 proposals. Noem in je answer wat je hebt voorgesteld. De eigenaar keurt elk voorstel nog goed — voer niets "zelf" uit en beweer nooit dat iets al is uitgevoerd.
+
+Antwoord als JSON {"answer":"...","proposals":[...]} — answer mag Markdown gebruiken, proposals mag leeg of weggelaten zijn.`,
+    userPrompt: `${data.contextText}${historyBlock}\n\nGebruiker: ${question}`,
     temperature: 0.3,
-    maxTokens: 1200,
+    maxTokens: 1600,
   });
-  return answer.answer;
+
+  // Validate → dedupe → persist
+  const candidates = validateChatProposals(raw.proposals, data, customerId);
+  const created: ChatProposalView[] = [];
+  const weekAgo = new Date(Date.now() - 7 * 86400000);
+  for (const c of candidates) {
+    const existing = await db.adsAgentProposal.findFirst({
+      where: {
+        fingerprint: c.fingerprint,
+        OR: [
+          { status: "pending" },
+          { status: "rejected", decidedAt: { gte: weekAgo } },
+          { status: "executed", executedAt: { gte: weekAgo } },
+        ],
+      },
+    });
+    if (existing) continue;
+    const row = await db.adsAgentProposal.create({ data: { ...c, payload: c.payload as object } });
+    created.push({ id: row.id, type: row.type, title: row.title, reason: row.reason });
+  }
+
+  return { answer: raw.answer, proposals: created };
 }
 
 export { WASTE_RULES };

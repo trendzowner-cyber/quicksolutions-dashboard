@@ -295,7 +295,7 @@ export function AgentSection({
       </Card>
 
       {/* Chat with the agent — persistent multi-turn conversation */}
-      <AgentChat accountId={accountId} showToast={showToast} />
+      <AgentChat accountId={accountId} showToast={showToast} onProposalsChanged={load} />
 
       {/* History */}
       <div>

@@ -17,7 +17,23 @@ interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   createdAt: string;
+  proposals?: ChatProposal[];
 }
+
+interface ChatProposal {
+  id: string;
+  type: string;
+  title: string;
+  reason: string;
+  state?: "pending" | "executing" | "executed" | "rejected" | "failed";
+  resultMsg?: string;
+}
+
+const PROPOSAL_TYPE_LABEL: Record<string, string> = {
+  add_negatives: "Negatief keyword",
+  pause_keyword: "Keyword pauzeren",
+  set_budget: "Budget",
+};
 
 const SUGGESTIONS = [
   "Welke zoektermen kosten het meest zonder conversie?",
@@ -28,9 +44,11 @@ const SUGGESTIONS = [
 export function AgentChat({
   accountId,
   showToast,
+  onProposalsChanged,
 }: {
   accountId: string;
   showToast: (m: string) => void;
+  onProposalsChanged?: () => void;
 }) {
   const [messages, setMessages] = useState<ChatMessage[] | null>(null);
   const [input, setInput] = useState("");
@@ -76,11 +94,18 @@ export function AgentChat({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.details || data.error);
+      const assistantMsg: ChatMessage = {
+        ...data.assistantMessage,
+        proposals: (data.proposals ?? []).map((p: ChatProposal) => ({ ...p, state: "pending" as const })),
+      };
       setMessages((m) => [
         ...(m ?? []).filter((x) => x.id !== optimistic.id),
         data.userMessage,
-        data.assistantMessage,
+        assistantMsg,
       ]);
+      if (assistantMsg.proposals?.length) {
+        onProposalsChanged?.();
+      }
     } catch (e) {
       setMessages((m) => [
         ...(m ?? []),
@@ -110,6 +135,52 @@ export function AgentChat({
       showToast("✓ Chat gewist");
     } finally {
       setClearing(false);
+    }
+  }
+
+  async function decideProposal(messageId: string, proposalId: string, decision: "approve" | "reject") {
+    // Approve executes against the live account (same guarded path as the list
+    // above) — the button is the human approval, nothing is automatic.
+    setMessages((m) =>
+      (m ?? []).map((msg) =>
+        msg.id !== messageId ? msg : {
+          ...msg,
+          proposals: msg.proposals?.map((p) => p.id === proposalId ? { ...p, state: decision === "approve" ? "executing" as const : p.state } : p),
+        }
+      )
+    );
+    try {
+      const res = await fetch("/api/ads/agent/proposals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: proposalId, decision }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.details || data.error);
+      setMessages((m) =>
+        (m ?? []).map((msg) =>
+          msg.id !== messageId ? msg : {
+            ...msg,
+            proposals: msg.proposals?.map((p) =>
+              p.id === proposalId
+                ? { ...p, state: decision === "approve" ? "executed" as const : "rejected" as const, resultMsg: data.summary }
+                : p
+            ),
+          }
+        )
+      );
+      showToast(decision === "approve" ? `✓ Uitgevoerd: ${data.summary}` : "✓ Voorstel afgewezen");
+      onProposalsChanged?.();
+    } catch (e) {
+      setMessages((m) =>
+        (m ?? []).map((msg) =>
+          msg.id !== messageId ? msg : {
+            ...msg,
+            proposals: msg.proposals?.map((p) => p.id === proposalId ? { ...p, state: "failed" as const } : p),
+          }
+        )
+      );
+      showToast(`✗ Actie mislukt: ${String(e)}`);
     }
   }
 
@@ -172,6 +243,36 @@ export function AgentChat({
                     <div className="rounded-2xl rounded-bl-sm border border-border bg-muted/50 px-4 py-2.5 text-sm">
                       <MiniMarkdown text={m.content} />
                     </div>
+                    {/* Inline action cards — approve executes via the guarded path */}
+                    {m.proposals?.map((p) => (
+                      <div key={p.id} className="mt-2 rounded-xl border border-google/30 bg-google/5 px-3.5 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-full border border-google/30 bg-google/10 px-2 py-0.5 text-[10px] font-medium text-google">
+                            {PROPOSAL_TYPE_LABEL[p.type] ?? p.type}
+                          </span>
+                          <p className="text-sm font-medium">{p.title}</p>
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">{p.reason}</p>
+                        {p.state === "pending" ? (
+                          <div className="mt-2 flex gap-2">
+                            <Button size="sm" onClick={() => decideProposal(m.id, p.id, "approve")}>
+                              Keur goed & voer uit
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => decideProposal(m.id, p.id, "reject")}>
+                              Wijs af
+                            </Button>
+                          </div>
+                        ) : p.state === "executing" ? (
+                          <p className="mt-2 text-xs text-muted-foreground">Uitvoeren…</p>
+                        ) : p.state === "executed" ? (
+                          <p className="mt-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">✓ Uitgevoerd{p.resultMsg ? ` — ${p.resultMsg}` : ""}</p>
+                        ) : p.state === "rejected" ? (
+                          <p className="mt-2 text-xs text-muted-foreground">Afgewezen</p>
+                        ) : (
+                          <p className="mt-2 text-xs text-red-600 dark:text-red-400">Mislukt — probeer via de voorstellenlijst</p>
+                        )}
+                      </div>
+                    ))}
                     <p className="mt-1 text-[10px] text-muted-foreground">{timeAgo(m.createdAt)}</p>
                   </div>
                 </div>

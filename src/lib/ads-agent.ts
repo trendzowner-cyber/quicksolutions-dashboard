@@ -157,14 +157,12 @@ function brainText(brain: AccountBrain): string {
 
 async function learnFromChatTurn(question: string, answer: string): Promise<string[]> {
   const mem = await getMemory();
-  const existing = new Set(
-    [...mem.rules, ...mem.facts, ...(mem.profile ? [mem.profile] : [])]
-      .map((t) => t.trim().toLowerCase())
-  );
+  const existingList = [...mem.rules, ...mem.facts, ...(mem.profile ? [mem.profile] : [])];
+  const existing = new Set(existingList.map((t) => t.trim().toLowerCase()));
   try {
     const out = await callDeepSeekJSON<{ memory: { kind: string; text: string }[] }>({
       systemPrompt: `Je beheert het langetermijngeheugen van een Google Ads-agent voor een reparatieshop. Haal uit de gebruikersvraag ALLEEN duurzame, herbruikbare informatie: voorkeuren, prioriteiten, regels, bedrijfsfeiten (bv. "Gent is prioriteit", "nooit aan merkcampagne komen", "wij repareren geen tablets"). GEEN eenmalige vragen, cijfers of smalltalk. Antwoord als JSON {"memory":[{"kind":"rule|fact|preference","text":"korte NL zin"}]} — lege array als er niets te leren valt. Max 2 items.`,
-      userPrompt: `Gebruiker zei: "${question}"\nAgent antwoordde (context): "${answer.slice(0, 600)}"`,
+      userPrompt: `${existingList.length ? `Bestaand geheugen (NIET herhalen, ook niet anders geformuleerd):\n${existingList.map((t) => `- ${t}`).join("\n")}\n\n` : ""}Gebruiker zei: "${question}"\nAgent antwoordde (context): "${answer.slice(0, 600)}"`,
       temperature: 0.2,
       maxTokens: 300,
     });

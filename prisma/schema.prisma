@@ -587,3 +587,13 @@ model AdsAgentProposal {
   @@index([fingerprint, status])
   @@index([status, createdAt])
 }
+
+model AdsAgentChatMessage {
+  id        String   @id @default(cuid())
+  accountId String
+  role      String // "user" | "assistant"
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([accountId, createdAt])
+}

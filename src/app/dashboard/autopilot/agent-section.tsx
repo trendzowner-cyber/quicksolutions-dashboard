@@ -14,7 +14,7 @@ import {
   Bot, RefreshCw, Check, X, Ban, PauseCircle, Wallet, Trash2,
   Brain, Plus, Sparkles, History,
 } from "lucide-react";
-import { MiniMarkdown } from "@/components/ui/mini-markdown";
+import { AgentChat } from "./agent-chat";
 import { timeAgo } from "@/lib/format";
 
 interface Proposal {
@@ -64,9 +64,6 @@ export function AgentSection({
   const [busy, setBusy] = useState<string | null>(null);
   const [memText, setMemText] = useState("");
   const [memKind, setMemKind] = useState<"rule" | "fact">("rule");
-  const [question, setQuestion] = useState("");
-  const [asking, setAsking] = useState(false);
-  const [answer, setAnswer] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const [p, h, m] = await Promise.all([
@@ -143,27 +140,6 @@ export function AgentSection({
       body: JSON.stringify({ id }),
     });
     await load();
-  }
-
-  async function ask() {
-    const q = question.trim();
-    if (!q) return;
-    setAsking(true);
-    setAnswer(null);
-    try {
-      const res = await fetch("/api/ads/agent/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q, accountId }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.details || data.error);
-      setAnswer(data.answer);
-    } catch (e) {
-      setAnswer(`**Fout:** ${String(e)}`);
-    } finally {
-      setAsking(false);
-    }
   }
 
   return (
@@ -318,34 +294,8 @@ export function AgentSection({
         </CardContent>
       </Card>
 
-      {/* Ask the agent */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-google" /> Vraag de agent
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            <input
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && ask()}
-              placeholder="bv. Waar gaat het meeste budget heen zonder resultaat?"
-              className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
-              maxLength={1000}
-            />
-            <Button onClick={ask} disabled={asking || !question.trim()}>
-              {asking ? "Denkt…" : "Vraag"}
-            </Button>
-          </div>
-          {(asking || answer) && (
-            <div className="mt-4 rounded-lg border border-google/30 bg-google/5 p-4">
-              {asking ? <Skeleton className="h-16 w-full" /> : <MiniMarkdown text={answer ?? ""} />}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Chat with the agent — persistent multi-turn conversation */}
+      <AgentChat accountId={accountId} showToast={showToast} />
 
       {/* History */}
       <div>

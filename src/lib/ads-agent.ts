@@ -208,11 +208,9 @@ export async function executeProposal(id: string, actor: string): Promise<string
 
 // ─── Ask the agent — chat with account context + memory ───
 
-export async function askAgent(
-  accessToken: string,
-  customerId: string,
-  question: string
-): Promise<string> {
+export interface ChatTurn { role: "user" | "assistant"; content: string }
+
+async function buildChatContext(accessToken: string, customerId: string): Promise<string> {
   const mem = await getMemory();
   const clause = dateClause("LAST_30_DAYS");
   const [rawTerms, budgets] = await Promise.all([
@@ -222,16 +220,41 @@ export async function askAgent(
   const terms = analyzeSearchTerms(rawTerms);
   const waste = terms.filter((t) => t.verdict === "waste" || t.verdict === "review");
 
-  const context = [
+  return [
     `Account: ${customerId}, periode: laatste 30 dagen.`,
     `Verspillende/beoordelen zoektermen (${waste.length}): ${waste.slice(0, 15).map((t) => `"${t.term}" €${(t.costMicros / 1e6).toFixed(0)}`).join(", ")}`,
     `Budgetadviezen: ${budgets.map((b) => `${b.campaignName}: ${b.action} (€${(b.dailyBudgetMicros / 1e6).toFixed(0)}/dag, ROAS ${b.roas?.toFixed(1) ?? "—"})`).join("; ")}`,
     memoryText(mem),
   ].join("\n\n");
+}
+
+/** Single-shot variant kept for callers that don't need history (e.g. Telegram). */
+export async function askAgent(
+  accessToken: string,
+  customerId: string,
+  question: string
+): Promise<string> {
+  return chatWithAgent(accessToken, customerId, [], question);
+}
+
+/** Multi-turn chat: prior turns are folded into the prompt so follow-ups work. */
+export async function chatWithAgent(
+  accessToken: string,
+  customerId: string,
+  history: ChatTurn[],
+  question: string
+): Promise<string> {
+  const context = await buildChatContext(accessToken, customerId);
+
+  const historyBlock = history.length
+    ? `\n\nEerdere conversatie:\n${history
+        .map((t) => `${t.role === "user" ? "Gebruiker" : "Agent"}: ${t.content}`)
+        .join("\n")}`
+    : "";
 
   const answer = await callDeepSeekJSON<{ answer: string }>({
-    systemPrompt: `Je bent de Google Ads-agent van QuickSolutions, een reparatieshop in Gent. Antwoord in het Nederlands, kort en concreet, op basis van de account-data hieronder. Verzin geen cijfers die er niet staan. Antwoord als JSON {"answer":"..."} — de answer mag Markdown gebruiken.`,
-    userPrompt: `${context}\n\nVraag: ${question}`,
+    systemPrompt: `Je bent de Google Ads-agent van QuickSolutions, een reparatieshop in Gent. Je chat met de eigenaar. Antwoord in het Nederlands, kort en concreet, op basis van de account-data hieronder. Verzin geen cijfers die er niet staan. Je mag verwijzen naar eerdere beurten in het gesprek. Antwoord als JSON {"answer":"..."} — de answer mag Markdown gebruiken.`,
+    userPrompt: `${context}${historyBlock}\n\nGebruiker: ${question}`,
     temperature: 0.3,
     maxTokens: 1200,
   });

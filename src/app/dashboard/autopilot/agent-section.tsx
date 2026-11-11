@@ -75,6 +75,34 @@ const STATUS_STYLE: Record<string, { cls: string; label: string }> = {
   failed: { cls: "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/40", label: "Mislukt" },
 };
 
+/** Compact pager: ‹ 1/4 › with page numbers, only rendered when > 1 page. */
+function Pager({ page, total, onPage }: { page: number; total: number; onPage: (p: number) => void }) {
+  if (total <= 1) return null;
+  return (
+    <div className="flex items-center justify-center gap-1 pt-3">
+      <Button size="sm" variant="outline" disabled={page === 0} onClick={() => onPage(page - 1)}>‹ Vorige</Button>
+      {Array.from({ length: total }).map((_, i) => (
+        <button
+          key={i}
+          onClick={() => onPage(i)}
+          className={`h-7 min-w-7 rounded-md px-2 text-xs font-medium ${
+            i === page ? "bg-google text-google-foreground" : "text-muted-foreground hover:bg-muted"
+          }`}
+        >
+          {i + 1}
+        </button>
+      ))}
+      <Button size="sm" variant="outline" disabled={page === total - 1} onClick={() => onPage(page + 1)}>Volgende ›</Button>
+    </div>
+  );
+}
+
+function paginate<T>(items: T[], page: number, perPage: number): { slice: T[]; page: number; total: number } {
+  const total = Math.max(1, Math.ceil(items.length / perPage));
+  const clamped = Math.min(page, total - 1);
+  return { slice: items.slice(clamped * perPage, clamped * perPage + perPage), page: clamped, total };
+}
+
 export function AgentSection({
   accountId,
   showToast,
@@ -93,6 +121,9 @@ export function AgentSection({
   const [questions, setQuestions] = useState<{ question: string; why: string }[] | null>(null);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [answering, setAnswering] = useState<number | null>(null);
+  const [pendingPage, setPendingPage] = useState(0);
+  const [historyPage, setHistoryPage] = useState(0);
+  const [memPage, setMemPage] = useState(0);
 
   const load = useCallback(async () => {
     const [p, h, m] = await Promise.all([
@@ -250,7 +281,11 @@ export function AgentSection({
             </p>
           ) : (
             <div className="space-y-3">
-              {pending.map((p) => {
+              {(() => {
+                const { slice, page, total } = paginate(pending, pendingPage, 5);
+                return (
+                  <>
+                    {slice.map((p) => {
                 const t = TYPE_STYLE[p.type] ?? TYPE_STYLE.remove_negative;
                 return (
                   <div key={p.id} className="group rounded-xl border border-border bg-card/50 hover:border-google/40 hover:bg-muted/30 transition-colors p-4 flex flex-wrap items-start gap-4">
@@ -284,7 +319,11 @@ export function AgentSection({
                     </div>
                   </div>
                 );
-              })}
+                    })}
+                    <Pager page={page} total={total} onPage={setPendingPage} />
+                  </>
+                );
+              })()}
             </div>
           )}
         </CardContent>
@@ -339,9 +378,11 @@ export function AgentSection({
             <Skeleton className="h-16 w-full" />
           ) : (
             <>
-              {memory.length > 0 && (
+              {memory.length > 0 && (() => {
+                const { slice, page, total } = paginate(memory, memPage, 8);
+                return (
                 <div className="space-y-2 mb-4">
-                  {memory.map((m) => (
+                  {slice.map((m) => (
                     <div key={m.id} className="flex items-center gap-2 text-sm rounded-md border border-border px-3 py-2">
                       <Badge className={m.kind === "rule"
                         ? "bg-google/10 text-google border-google/30"
@@ -358,8 +399,10 @@ export function AgentSection({
                       </button>
                     </div>
                   ))}
+                  <Pager page={page} total={total} onPage={setMemPage} />
                 </div>
-              )}
+                );
+              })()}
               <div className="flex flex-wrap gap-2">
                 <select
                   value={memKind}
@@ -402,8 +445,11 @@ export function AgentSection({
           <div className="mt-3 space-y-2">
             {!history.length ? (
               <p className="text-sm text-muted-foreground">Nog geen uitgevoerde of afgewezen voorstellen.</p>
-            ) : (
-              history.map((p) => {
+            ) : (() => {
+              const { slice, page, total } = paginate(history, historyPage, 10);
+              return (
+                <>
+              {slice.map((p) => {
                 const s = STATUS_STYLE[p.status] ?? STATUS_STYLE.rejected;
                 return (
                   <div key={p.id} className="rounded-lg border border-border px-4 py-3 flex items-center gap-3">
@@ -417,8 +463,11 @@ export function AgentSection({
                     </span>
                   </div>
                 );
-              })
-            )}
+              })}
+              <Pager page={page} total={total} onPage={setHistoryPage} />
+                </>
+              );
+            })()}
           </div>
         )}
       </div>

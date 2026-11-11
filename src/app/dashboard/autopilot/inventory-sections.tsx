@@ -21,6 +21,30 @@ const ACCOUNT_ID = "668-709-2345";
 
 const pct = (v: number | null) => (v === null ? "—" : `${(v * 100).toFixed(1)}%`);
 
+/** Shared table pager — shows prev/next + position, hidden for a single page. */
+function TablePager({ page, total, onPage }: { page: number; total: number; onPage: (p: number) => void }) {
+  if (total <= 1) return null;
+  return (
+    <div className="flex items-center justify-center gap-2 pt-3">
+      <Button size="sm" variant="outline" disabled={page === 0} onClick={() => onPage(page - 1)}>‹ Vorige</Button>
+      <span className="px-2 text-xs text-muted-foreground">Pagina {page + 1} van {total}</span>
+      <Button size="sm" variant="outline" disabled={page >= total - 1} onClick={() => onPage(page + 1)}>Volgende ›</Button>
+    </div>
+  );
+}
+
+function usePager(count: number, perPage: number) {
+  const [page, setPage] = useState(0);
+  const total = Math.max(1, Math.ceil(count / perPage));
+  const clamped = Math.min(page, total - 1);
+  return {
+    page: clamped,
+    total,
+    setPage,
+    slice: <T,>(rows: T[]) => rows.slice(clamped * perPage, clamped * perPage + perPage),
+  };
+}
+
 // ─── Campagnes ───
 
 interface CampaignRow {
@@ -269,6 +293,9 @@ export function KeywordsSection({
     );
   });
 
+  const { page: kwPage, total: kwTotal, setPage: setKwPage, slice: kwSliceOf } = usePager(rows.length, 50);
+  const kwSlice = kwSliceOf(rows);
+
   function downloadCsv() {
     const esc = (v: string | number) => {
       const s = String(v);
@@ -301,7 +328,7 @@ export function KeywordsSection({
         <div className="flex items-center gap-2">
           <input
             value={filter}
-            onChange={(e) => setFilter(e.target.value)}
+            onChange={(e) => { setFilter(e.target.value); setKwPage(0); }}
             placeholder="Zoek keyword, campagne…"
             className="rounded-md border border-border bg-background px-3 py-2 text-sm w-64"
           />
@@ -335,7 +362,7 @@ export function KeywordsSection({
                 </tr>
               </thead>
               <tbody>
-                {rows.slice(0, 300).map((k) => (
+                {kwSlice.map((k) => (
                   <tr key={k.resourceName} className="border-b border-border/50 hover:bg-muted/20">
                     <td className="py-2 pr-3 font-medium max-w-56 truncate" title={k.text}>{k.text}</td>
                     <td className="py-2 pr-3 text-xs text-muted-foreground">{k.matchType}</td>
@@ -374,9 +401,10 @@ export function KeywordsSection({
                 ))}
               </tbody>
             </table>
+            <TablePager page={kwPage} total={kwTotal} onPage={setKwPage} />
             {rows.length > 300 && (
               <p className="text-xs text-muted-foreground text-center py-3">
-                Top 300 getoond — gebruik het zoekveld of download de CSV voor alles ({rows.length} rijen).
+                Grote lijst — gebruik het zoekveld of download de CSV ({rows.length} rijen) om alles in Excel te zien.
               </p>
             )}
           </div>
@@ -442,6 +470,9 @@ export function NegativesSection({
     return n.text.toLowerCase().includes(q) || n.container.toLowerCase().includes(q);
   });
 
+  const { page: negPage, total: negTotal, setPage: setNegPage, slice: negSliceOf } = usePager(rows.length, 50);
+  const negSlice = negSliceOf(rows);
+
   const sharedCount = (negatives ?? []).filter((n) => n.scope === "shared").length;
 
   return (
@@ -450,7 +481,7 @@ export function NegativesSection({
         <CardTitle className="text-lg">Negatieve keywords ({negatives?.length ?? 0})</CardTitle>
         <input
           value={filter}
-          onChange={(e) => setFilter(e.target.value)}
+          onChange={(e) => { setFilter(e.target.value); setNegPage(0); }}
           placeholder="Zoek negatief keyword…"
           className="rounded-md border border-border bg-background px-3 py-2 text-sm w-64"
         />
@@ -478,7 +509,7 @@ export function NegativesSection({
                 </tr>
               </thead>
               <tbody>
-                {rows.slice(0, 300).map((n) => (
+                {negSlice.map((n) => (
                   <tr key={n.resourceName} className="border-b border-border/50 hover:bg-muted/20">
                     <td className="py-2 pr-3 font-medium">{n.text}</td>
                     <td className="py-2 pr-3 text-xs" title={MATCH_EXPLAIN[n.matchType] ?? ""}>
@@ -518,9 +549,10 @@ export function NegativesSection({
                 ))}
               </tbody>
             </table>
+            <TablePager page={negPage} total={negTotal} onPage={setNegPage} />
             {rows.length > 300 && (
               <p className="text-xs text-muted-foreground text-center py-3">
-                Top 300 getoond — gebruik het zoekveld ({rows.length} rijen totaal).
+                Grote lijst — gebruik het zoekveld ({rows.length} rijen totaal).
               </p>
             )}
           </div>

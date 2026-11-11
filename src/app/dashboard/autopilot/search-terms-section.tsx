@@ -66,6 +66,8 @@ export function SearchTermsSection({
 }) {
   const [filter, setFilter] = useState("");
   const [onlyFlagged, setOnlyFlagged] = useState(false);
+  const [page, setPage] = useState(0);
+  const PER_PAGE = 50;
 
   const rows = (terms ?? []).filter((t) => {
     if (onlyFlagged && t.verdict === "neutral") return false;
@@ -119,7 +121,7 @@ export function SearchTermsSection({
         <div className="flex flex-wrap items-center gap-2">
           <input
             value={filter}
-            onChange={(e) => setFilter(e.target.value)}
+            onChange={(e) => { setFilter(e.target.value); setPage(0); }}
             placeholder="Zoek op term, keyword, campagne…"
             className="rounded-md border border-border bg-background px-3 py-2 text-sm w-64"
           />
@@ -127,7 +129,7 @@ export function SearchTermsSection({
             <input
               type="checkbox"
               checked={onlyFlagged}
-              onChange={(e) => setOnlyFlagged(e.target.checked)}
+              onChange={(e) => { setOnlyFlagged(e.target.checked); setPage(0); }}
               className="accent-red-500"
             />
             Alleen geflagd
@@ -162,7 +164,7 @@ export function SearchTermsSection({
                 </tr>
               </thead>
               <tbody>
-                {rows.slice(0, 300).map((t) => {
+                {rows.slice(page * PER_PAGE, page * PER_PAGE + PER_PAGE).map((t) => {
                   const key = `${t.campaignId}:${t.term}`;
                   const v = VERDICT_STYLE[t.verdict];
                   const st = TERM_STATUS[t.termStatus] ?? TERM_STATUS.NONE;
@@ -221,9 +223,23 @@ export function SearchTermsSection({
                 })}
               </tbody>
             </table>
+            {(() => {
+              const totalPages = Math.ceil(rows.length / PER_PAGE);
+              const clamped = Math.min(page, Math.max(0, totalPages - 1));
+              if (totalPages <= 1) return null;
+              return (
+                <div className="flex items-center justify-center gap-1 pt-3">
+                  <Button size="sm" variant="outline" disabled={clamped === 0} onClick={() => setPage(clamped - 1)}>‹ Vorige</Button>
+                  <span className="px-2 text-xs text-muted-foreground">
+                    Pagina {clamped + 1} van {totalPages} · {rows.length} termen
+                  </span>
+                  <Button size="sm" variant="outline" disabled={clamped >= totalPages - 1} onClick={() => setPage(clamped + 1)}>Volgende ›</Button>
+                </div>
+              );
+            })()}
             {rows.length > 300 && (
               <p className="text-xs text-muted-foreground text-center py-3">
-                Top 300 getoond — gebruik het zoekveld of download de CSV voor alles ({rows.length} rijen).
+                Grote lijst — gebruik het zoekveld of download de CSV ({rows.length} rijen) om alles in Excel te zien.
               </p>
             )}
           </div>

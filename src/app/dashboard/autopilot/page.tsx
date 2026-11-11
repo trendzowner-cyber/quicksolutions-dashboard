@@ -173,6 +173,7 @@ export default function AutopilotPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
+  const [kwPausePage, setKwPausePage] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -766,7 +767,11 @@ export default function AutopilotPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {keywords.map((k) => (
+                      {(() => {
+                        const PER = 10;
+                        const total = Math.max(1, Math.ceil((keywords?.length ?? 0) / PER));
+                        const pg = Math.min(kwPausePage, total - 1);
+                        return (keywords ?? []).slice(pg * PER, pg * PER + PER).map((k) => (
                         <tr key={k.resourceName} className="border-b border-border/50 hover:bg-muted/20">
                           <td className="py-2 pr-3">
                             <span className="font-medium">{k.text}</span>{" "}
@@ -799,9 +804,23 @@ export default function AutopilotPage() {
                             </Button>
                           </td>
                         </tr>
-                      ))}
+                        ));
+                      })()}
                     </tbody>
                   </table>
+                  {(() => {
+                    const PER = 10;
+                    const total = Math.ceil((keywords?.length ?? 0) / PER);
+                    if (total <= 1) return null;
+                    const pg = Math.min(kwPausePage, total - 1);
+                    return (
+                      <div className="flex items-center justify-center gap-2 pt-3">
+                        <Button size="sm" variant="outline" disabled={pg === 0} onClick={() => setKwPausePage(pg - 1)}>‹ Vorige</Button>
+                        <span className="px-2 text-xs text-muted-foreground">Pagina {pg + 1} van {total} · {keywords?.length} keywords</span>
+                        <Button size="sm" variant="outline" disabled={pg >= total - 1} onClick={() => setKwPausePage(pg + 1)}>Volgende ›</Button>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </CardContent>

@@ -473,7 +473,8 @@ export async function chatWithAgent(
   accessToken: string,
   customerId: string,
   history: ChatTurn[],
-  question: string
+  question: string,
+  lang: "nl" | "en" = "nl"
 ): Promise<ChatResult> {
   const data = await buildChatData(accessToken, customerId);
 
@@ -483,10 +484,16 @@ export async function chatWithAgent(
         .join("\n")}`
     : "";
 
+  const langRule = lang === "en"
+    ? "Taal: antwoord ALTIJD in het Engels (de gebruiker heeft de dashboardtaal op Engels gezet). Voorstel-titels en -redenen ook in het Engels."
+    : "Taal: antwoord in Vlaams Nederlands; voorstel-titels en -redenen ook in het Nederlands.";
+
   const raw = await callDeepSeekJSON<{ answer: string; proposals?: unknown[] }>({
     systemPrompt: `Je bent de senior Google Ads-consultant van QuickSolutions, een Belgische computer- en smartphone-reparatiezaak. Je kent dit account vanbuiten: de ACCOUNT- en CAMPAAGNES-secties hieronder zijn je eigen analyse, altijd actueel. Praat als een collega die de cijfers kent — nooit "ik zou moeten nakijken", je hebt de data al.
 
-Stijl: Vlaams Nederlands, direct en concreet. Gebruik echte cijfers uit de data. Verzin niets; staat iets er niet, zeg dan eerlijk welke data ontbreekt. Denk mee als een marketeer: benoem trends, kruisverbanden tussen campagnes, en wat de beste volgende stap is. Verwijs gerust naar eerdere beurten in het gesprek. Volg de REGELS uit het geheugen altijd.
+${langRule}
+
+Stijl: direct en concreet. Gebruik echte cijfers uit de data. Verzin niets; staat iets er niet, zeg dan eerlijk welke data ontbreekt. Denk mee als een marketeer: benoem trends, kruisverbanden tussen campagnes, en wat de beste volgende stap is. Verwijs gerust naar eerdere beurten in het gesprek. Volg de REGELS uit het geheugen altijd.
 
 Je kunt ook ACTIES voorstellen. Als de gebruiker vraagt iets te doen (zoekterm blokkeren, keyword pauzeren, budget aanpassen), voeg dan "proposals" toe aan je JSON. Regels:
 - Gebruik ALLEEN resource-namen, campagneIds en bedragen die letterlijk in de data hieronder staan — verzin er nooit zelf.

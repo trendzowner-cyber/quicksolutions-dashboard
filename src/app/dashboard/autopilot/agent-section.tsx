@@ -16,6 +16,51 @@ import {
 } from "lucide-react";
 import { AgentChat } from "./agent-chat";
 import { timeAgo } from "@/lib/format";
+import { useAdsLang, type L } from "./i18n";
+
+const AS = {
+  agentOn: { nl: "Agent staat aan", en: "Agent is on" },
+  approvalMode: { nl: "Goedkeuringsmodus", en: "Approval mode" },
+  agentDesc: { nl: "De agent analyseert je account en stelt acties voor. Niets wordt uitgevoerd zonder jouw goedkeuring — elke uitvoering wordt gelogd.", en: "The agent analyses your account and proposes actions. Nothing executes without your approval — every run is logged." },
+  analyseRunning: { nl: "Analyse loopt (±20s)…", en: "Analysis running (±20s)…" },
+  analyseNow: { nl: "Analyseer nu", en: "Analyse now" },
+  analyseDone: { nl: "✓ Analyse klaar:", en: "✓ Analysis done:" },
+  newProposals: { nl: "nieuwe voorstellen", en: "new proposals" },
+  skippedWord: { nl: "overgeslagen", en: "skipped" },
+  analyseFailed: { nl: "✗ Analyse mislukt:", en: "✗ Analysis failed:" },
+  toReview: { nl: "Te bekijken", en: "To review" },
+  noPending: { nl: "Geen openstaande voorstellen. Klik op \"Analyseer nu\" om het account te laten nakijken.", en: "No pending proposals. Click \"Analyse now\" to have the account reviewed." },
+  proposedAgo: { nl: "Voorgesteld", en: "Proposed" },
+  approveRun: { nl: "Keur goed & voer uit", en: "Approve & run" },
+  rejectBtn: { nl: "Wijs af", en: "Reject" },
+  toastExecuted: { nl: "✓ Uitgevoerd:", en: "✓ Executed:" },
+  toastRejected: { nl: "✓ Voorstel afgewezen", en: "✓ Proposal rejected" },
+  needsYou: { nl: "Heeft jou nodig", en: "Needs you" },
+  yourAnswer: { nl: "Jouw antwoord…", en: "Your answer…" },
+  answer: { nl: "Beantwoord", en: "Answer" },
+  answerSaved: { nl: "✓ Antwoord opgeslagen — de agent onthoudt dit", en: "✓ Answer saved — the agent will remember this" },
+  saveFailed: { nl: "Opslaan mislukt", en: "Save failed" },
+  memoryTitle: { nl: "Geheugen & regels", en: "Memory & rules" },
+  memoryDesc1: { nl: "Regels volgt de agent altijd bij zijn voorstellen en antwoorden (bv. \"raak de merkcampagne nooit aan\", \"hou Gent – Overig onder €20/dag\"). Feiten zijn context over je zaak.", en: "The agent always follows rules in its proposals and answers (e.g. \"never touch the brand campaign\", \"keep Gent – Overig under €20/day\"). Facts are context about your business." },
+  rule: { nl: "Regel", en: "Rule" },
+  fact: { nl: "Feit", en: "Fact" },
+  rulePlaceholder: { nl: "bv. Verander nooit iets aan de merkcampagne", en: "e.g. Never change anything in the brand campaign" },
+  factPlaceholder: { nl: "bv. Wij doen geen reparaties aan tablets van voor 2018", en: "e.g. We don't repair tablets from before 2018" },
+  addBtn: { nl: "Voeg toe", en: "Add" },
+  hideHistory: { nl: "Verberg geschiedenis", en: "Hide history" },
+  showHistory: { nl: "Toon geschiedenis", en: "Show history" },
+  noHistory: { nl: "Nog geen uitgevoerde of afgewezen voorstellen.", en: "No executed or rejected proposals yet." },
+  prev: { nl: "‹ Vorige", en: "‹ Previous" },
+  next: { nl: "Volgende ›", en: "Next ›" },
+  typeNegatives: { nl: "Negatief keyword", en: "Negative keyword" },
+  typePause: { nl: "Keyword pauzeren", en: "Pause keyword" },
+  typeBudget: { nl: "Budget", en: "Budget" },
+  typeRemoveNeg: { nl: "Negatief verwijderen", en: "Remove negative" },
+  typeCreateCampaign: { nl: "Nieuwe campagne", en: "New campaign" },
+  stExecuted: { nl: "Uitgevoerd", en: "Executed" },
+  stRejected: { nl: "Afgewezen", en: "Rejected" },
+  stFailed: { nl: "Mislukt", en: "Failed" },
+} satisfies Record<string, L>;
 
 interface Proposal {
   id: string;
@@ -36,51 +81,51 @@ interface MemoryRow {
   source: string;
 }
 
-const TYPE_STYLE: Record<string, { icon: React.ElementType; tile: string; badge: string; label: string }> = {
+const TYPE_STYLE: Record<string, { icon: React.ElementType; tile: string; badge: string; label: L }> = {
   add_negatives: {
     icon: Ban,
     tile: "bg-red-500/15 text-red-500 dark:text-red-400",
     badge: "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/40",
-    label: "Negatief keyword",
+    label: AS.typeNegatives,
   },
   pause_keyword: {
     icon: PauseCircle,
     tile: "bg-amber-500/15 text-amber-500 dark:text-amber-400",
     badge: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/40",
-    label: "Keyword pauzeren",
+    label: AS.typePause,
   },
   set_budget: {
     icon: Wallet,
     tile: "bg-blue-500/15 text-blue-500 dark:text-blue-400",
     badge: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/40",
-    label: "Budget",
+    label: AS.typeBudget,
   },
   remove_negative: {
     icon: Trash2,
     tile: "bg-muted text-muted-foreground",
     badge: "bg-muted text-muted-foreground border border-border",
-    label: "Negatief verwijderen",
+    label: AS.typeRemoveNeg,
   },
   create_campaign: {
     icon: Plus,
     tile: "bg-emerald-500/15 text-emerald-500 dark:text-emerald-400",
     badge: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40",
-    label: "Nieuwe campagne",
+    label: AS.typeCreateCampaign,
   },
 };
 
-const STATUS_STYLE: Record<string, { cls: string; label: string }> = {
-  executed: { cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40", label: "Uitgevoerd" },
-  rejected: { cls: "bg-muted text-muted-foreground border border-border", label: "Afgewezen" },
-  failed: { cls: "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/40", label: "Mislukt" },
+const STATUS_STYLE: Record<string, { cls: string; label: L }> = {
+  executed: { cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40", label: AS.stExecuted },
+  rejected: { cls: "bg-muted text-muted-foreground border border-border", label: AS.stRejected },
+  failed: { cls: "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/40", label: AS.stFailed },
 };
 
 /** Compact pager: ‹ 1/4 › with page numbers, only rendered when > 1 page. */
-function Pager({ page, total, onPage }: { page: number; total: number; onPage: (p: number) => void }) {
+function Pager({ page, total, onPage, lang }: { page: number; total: number; onPage: (p: number) => void; lang: "nl" | "en" }) {
   if (total <= 1) return null;
   return (
     <div className="flex items-center justify-center gap-1 pt-3">
-      <Button size="sm" variant="outline" disabled={page === 0} onClick={() => onPage(page - 1)}>‹ Vorige</Button>
+      <Button size="sm" variant="outline" disabled={page === 0} onClick={() => onPage(page - 1)}>{AS.prev[lang]}</Button>
       {Array.from({ length: total }).map((_, i) => (
         <button
           key={i}
@@ -92,7 +137,7 @@ function Pager({ page, total, onPage }: { page: number; total: number; onPage: (
           {i + 1}
         </button>
       ))}
-      <Button size="sm" variant="outline" disabled={page === total - 1} onClick={() => onPage(page + 1)}>Volgende ›</Button>
+      <Button size="sm" variant="outline" disabled={page === total - 1} onClick={() => onPage(page + 1)}>{AS.next[lang]}</Button>
     </div>
   );
 }
@@ -124,6 +169,7 @@ export function AgentSection({
   const [pendingPage, setPendingPage] = useState(0);
   const [historyPage, setHistoryPage] = useState(0);
   const [memPage, setMemPage] = useState(0);
+  const { lang } = useAdsLang();
 
   const load = useCallback(async () => {
     const [p, h, m] = await Promise.all([
@@ -155,7 +201,7 @@ export function AgentSection({
       if (!res.ok) throw new Error("Opslaan mislukt");
       setQuestions((qs) => (qs ?? []).filter((_, idx) => idx !== i));
       setAnswers((prev) => { const next = { ...prev }; delete next[i]; return next; });
-      showToast("✓ Antwoord opgeslagen — de agent onthoudt dit");
+      showToast(AS.answerSaved[lang]);
       await load();
     } catch (e) {
       showToast(`✗ ${String(e)}`);
@@ -176,10 +222,10 @@ export function AgentSection({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.details || data.error);
-      showToast(`✓ Analyse klaar: ${data.created} nieuwe voorstellen (${data.skipped} overgeslagen)`);
+      showToast(`${AS.analyseDone[lang]} ${data.created} ${AS.newProposals[lang]} (${data.skipped} ${AS.skippedWord[lang]})`);
       await load();
     } catch (e) {
-      showToast(`✗ Analyse mislukt: ${String(e)}`);
+      showToast(`${AS.analyseFailed[lang]} ${String(e)}`);
     } finally {
       setRunning(false);
     }
@@ -195,7 +241,7 @@ export function AgentSection({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || data.details);
-      showToast(decision === "approve" ? `✓ Uitgevoerd: ${data.summary}` : "✓ Voorstel afgewezen");
+      showToast(decision === "approve" ? `${AS.toastExecuted[lang]} ${data.summary}` : AS.toastRejected[lang]);
       await load();
     } catch (e) {
       showToast(`✗ ${String(e)}`);
@@ -241,22 +287,21 @@ export function AgentSection({
             </div>
             <div>
               <p className="font-medium flex items-center gap-2">
-                Agent staat aan
+                {AS.agentOn[lang]}
                 <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
-                  Goedkeuringsmodus
+                  {AS.approvalMode[lang]}
                 </Badge>
               </p>
               <p className="text-sm text-muted-foreground">
-                De agent analyseert je account en stelt acties voor. Niets wordt uitgevoerd
-                zonder jouw goedkeuring — elke uitvoering wordt gelogd.
+                {AS.agentDesc[lang]}
               </p>
             </div>
           </div>
           <Button onClick={runAnalysis} disabled={running}>
             {running ? (
-              <><RefreshCw className="h-4 w-4 mr-1 animate-spin" /> Analyse loopt (±20s)…</>
+              <><RefreshCw className="h-4 w-4 mr-1 animate-spin" /> {AS.analyseRunning[lang]}</>
             ) : (
-              <><Sparkles className="h-4 w-4 mr-1" /> Analyseer nu</>
+              <><Sparkles className="h-4 w-4 mr-1" /> {AS.analyseNow[lang]}</>
             )}
           </Button>
         </CardContent>
@@ -266,7 +311,7 @@ export function AgentSection({
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            Te bekijken
+            {AS.toReview[lang]}
             {pending && pending.length > 0 && (
               <Badge className="bg-google/10 text-google border-google/30">{pending.length}</Badge>
             )}
@@ -277,7 +322,7 @@ export function AgentSection({
             <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
           ) : !pending.length ? (
             <p className="text-sm text-muted-foreground py-6 text-center">
-              Geen openstaande voorstellen. Klik op &quot;Analyseer nu&quot; om het account te laten nakijken.
+              {AS.noPending[lang]}
             </p>
           ) : (
             <div className="space-y-3">
@@ -295,10 +340,10 @@ export function AgentSection({
                     <div className="flex-1 min-w-60">
                       <div className="flex items-center gap-2.5 flex-wrap">
                         <p className="font-medium leading-snug">{p.title}</p>
-                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${t.badge}`}>{t.label}</span>
+                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${t.badge}`}>{t.label[lang]}</span>
                       </div>
                       <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{p.reason}</p>
-                      <p className="text-xs text-muted-foreground/60 mt-1.5">Voorgesteld {timeAgo(p.createdAt)}</p>
+                      <p className="text-xs text-muted-foreground/60 mt-1.5">{AS.proposedAgo[lang]} {timeAgo(p.createdAt)}</p>
                     </div>
                     <div className="flex gap-2 shrink-0 self-center">
                       <Button
@@ -306,7 +351,7 @@ export function AgentSection({
                         disabled={busy !== null}
                         onClick={() => decide(p.id, "approve")}
                       >
-                        {busy === p.id ? "…" : <><Check className="h-4 w-4 mr-1" /> Keur goed &amp; voer uit</>}
+                        {busy === p.id ? "…" : <><Check className="h-4 w-4 mr-1" /> {AS.approveRun[lang]}</>}
                       </Button>
                       <Button
                         size="sm"
@@ -314,13 +359,13 @@ export function AgentSection({
                         disabled={busy !== null}
                         onClick={() => decide(p.id, "reject")}
                       >
-                        <X className="h-4 w-4 mr-1" /> Wijs af
+                        <X className="h-4 w-4 mr-1" /> {AS.rejectBtn[lang]}
                       </Button>
                     </div>
                   </div>
                 );
                     })}
-                    <Pager page={page} total={total} onPage={setPendingPage} />
+                    <Pager page={page} total={total} onPage={setPendingPage} lang={lang} />
                   </>
                 );
               })()}
@@ -335,7 +380,7 @@ export function AgentSection({
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-bold">?</span>
-              Heeft jou nodig
+              {AS.needsYou[lang]}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -348,12 +393,12 @@ export function AgentSection({
                     value={answers[i] ?? ""}
                     onChange={(e) => setAnswers((prev) => ({ ...prev, [i]: e.target.value }))}
                     onKeyDown={(e) => e.key === "Enter" && answerQuestion(i)}
-                    placeholder="Jouw antwoord…"
+                    placeholder={AS.yourAnswer[lang]}
                     className="flex-1 rounded-md border border-border bg-background px-3 py-1.5 text-sm"
                     maxLength={500}
                   />
                   <Button size="sm" onClick={() => answerQuestion(i)} disabled={answering === i || !(answers[i] ?? "").trim()}>
-                    {answering === i ? "…" : "Beantwoord"}
+                    {answering === i ? "…" : AS.answer[lang]}
                   </Button>
                 </div>
               </div>
@@ -366,13 +411,12 @@ export function AgentSection({
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <Brain className="h-5 w-5 text-google" /> Geheugen &amp; regels
+            <Brain className="h-5 w-5 text-google" /> {AS.memoryTitle[lang]}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground mb-3">
-            Regels volgt de agent altijd bij zijn voorstellen en antwoorden (bv. &quot;raak de
-            merkcampagne nooit aan&quot;, &quot;hou Gent – Overig onder €20/dag&quot;). Feiten zijn context over je zaak.
+            {AS.memoryDesc1[lang]}
           </p>
           {!memory ? (
             <Skeleton className="h-16 w-full" />
@@ -387,7 +431,7 @@ export function AgentSection({
                       <Badge className={m.kind === "rule"
                         ? "bg-google/10 text-google border-google/30"
                         : "bg-muted/40 text-muted-foreground border-border"}>
-                        {m.kind === "rule" ? "Regel" : "Feit"}
+                        {m.kind === "rule" ? AS.rule[lang] : AS.fact[lang]}
                       </Badge>
                       <span className="flex-1">{m.text}</span>
                       <button
@@ -399,7 +443,7 @@ export function AgentSection({
                       </button>
                     </div>
                   ))}
-                  <Pager page={page} total={total} onPage={setMemPage} />
+                  <Pager page={page} total={total} onPage={setMemPage} lang={lang} />
                 </div>
                 );
               })()}
@@ -409,19 +453,19 @@ export function AgentSection({
                   onChange={(e) => setMemKind(e.target.value as "rule" | "fact")}
                   className="rounded-md border border-border bg-background px-2 py-2 text-sm"
                 >
-                  <option value="rule">Regel</option>
-                  <option value="fact">Feit</option>
+                  <option value="rule">{AS.rule[lang]}</option>
+                  <option value="fact">{AS.fact[lang]}</option>
                 </select>
                 <input
                   value={memText}
                   onChange={(e) => setMemText(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && addMemory()}
-                  placeholder={memKind === "rule" ? "bv. Verander nooit iets aan de merkcampagne" : "bv. Wij doen geen reparaties aan tablets van voor 2018"}
+                  placeholder={memKind === "rule" ? AS.rulePlaceholder[lang] : AS.factPlaceholder[lang]}
                   className="flex-1 min-w-60 rounded-md border border-border bg-background px-3 py-2 text-sm"
                   maxLength={500}
                 />
                 <Button size="sm" variant="outline" onClick={addMemory} disabled={!memText.trim()}>
-                  <Plus className="h-4 w-4 mr-1" /> Voeg toe
+                  <Plus className="h-4 w-4 mr-1" /> {AS.addBtn[lang]}
                 </Button>
               </div>
             </>
@@ -439,12 +483,12 @@ export function AgentSection({
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
         >
           <History className="h-4 w-4" />
-          {showHistory ? "Verberg geschiedenis" : `Toon geschiedenis (${history?.length ?? 0})`}
+          {showHistory ? AS.hideHistory[lang] : `${AS.showHistory[lang]} (${history?.length ?? 0})`}
         </button>
         {showHistory && history && (
           <div className="mt-3 space-y-2">
             {!history.length ? (
-              <p className="text-sm text-muted-foreground">Nog geen uitgevoerde of afgewezen voorstellen.</p>
+              <p className="text-sm text-muted-foreground">{AS.noHistory[lang]}</p>
             ) : (() => {
               const { slice, page, total } = paginate(history, historyPage, 10);
               return (
@@ -453,7 +497,7 @@ export function AgentSection({
                 const s = STATUS_STYLE[p.status] ?? STATUS_STYLE.rejected;
                 return (
                   <div key={p.id} className="rounded-lg border border-border px-4 py-3 flex items-center gap-3">
-                    <Badge className={s.cls}>{s.label}</Badge>
+                    <Badge className={s.cls}>{s.label[lang]}</Badge>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{p.title}</p>
                       {p.resultMsg && <p className="text-xs text-muted-foreground truncate">{p.resultMsg}</p>}
@@ -464,7 +508,7 @@ export function AgentSection({
                   </div>
                 );
               })}
-              <Pager page={page} total={total} onPage={setHistoryPage} />
+              <Pager page={page} total={total} onPage={setHistoryPage} lang={lang} />
                 </>
               );
             })()}

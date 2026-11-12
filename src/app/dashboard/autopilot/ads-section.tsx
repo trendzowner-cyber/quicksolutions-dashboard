@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Pencil, PauseCircle, PlayCircle, X, Check, Plus } from "lucide-react";
 import { eur } from "./search-terms-section";
+import { useAdsLang, type L, type AdsLang } from "./i18n";
 
 const ACCOUNT_ID = "668-709-2345";
 
@@ -44,19 +45,37 @@ interface AdVariantRow {
   conversions: number;
 }
 
-const PERF_STYLE: Record<string, { label: string; cls: string }> = {
-  GOOD: { label: "Goed", cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" },
-  LEARNING: { label: "Leert", cls: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30" },
-  LOW: { label: "Zwak", cls: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30" },
-  PENDING: { label: "In afwachting", cls: "bg-muted/40 text-muted-foreground border-border" },
+const PERF_STYLE: Record<string, { label: L; cls: string }> = {
+  GOOD: { label: { nl: "Goed", en: "Good" }, cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" },
+  LEARNING: { label: { nl: "Leert", en: "Learning" }, cls: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30" },
+  LOW: { label: { nl: "Zwak", en: "Weak" }, cls: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30" },
+  PENDING: { label: { nl: "In afwachting", en: "Pending" }, cls: "bg-muted/40 text-muted-foreground border-border" },
 };
 
-const APPROVAL_STYLE: Record<string, { label: string; cls: string }> = {
-  APPROVED: { label: "Goedgekeurd", cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" },
-  APPROVED_LIMITED: { label: "Beperkt", cls: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30" },
-  UNDER_REVIEW: { label: "In review", cls: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30" },
-  DISAPPROVED: { label: "Afgekeurd", cls: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30" },
+const APPROVAL_STYLE: Record<string, { label: L; cls: string }> = {
+  APPROVED: { label: { nl: "Goedgekeurd", en: "Approved" }, cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" },
+  APPROVED_LIMITED: { label: { nl: "Beperkt", en: "Limited" }, cls: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30" },
+  UNDER_REVIEW: { label: { nl: "In review", en: "In review" }, cls: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30" },
+  DISAPPROVED: { label: { nl: "Afgekeurd", en: "Disapproved" }, cls: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30" },
 };
+
+const AD = {
+  title: { nl: "Advertenties", en: "Ads" },
+  empty: { nl: "Geen actieve advertenties met vertoningen in deze periode.", en: "No active ads with impressions in this period." },
+  active: { nl: "Actief", en: "Active" },
+  paused: { nl: "Gepauzeerd", en: "Paused" },
+  clicks: { nl: "kliks", en: "clicks" },
+  editTexts: { nl: "Teksten bewerken", en: "Edit texts" },
+  pause: { nl: "Pauzeer", en: "Pause" },
+  activate: { nl: "Activeer", en: "Enable" },
+  saving: { nl: "Opslaan…", en: "Saving…" },
+  saveToGoogle: { nl: "Opslaan naar Google Ads", en: "Save to Google Ads" },
+  cancel: { nl: "Annuleer", en: "Cancel" },
+  saveWarning: { nl: "Opslaan wijzigt de live advertentie direct — er is geen conceptfase in Google Ads.", en: "Saving changes the live ad immediately — there is no draft stage in Google Ads." },
+  partialNote: { nl: "Per-headline cijfers komen van Google's asset-rapportage en zijn deels — geen cijfer betekent niet gerapporteerd, niet nul.", en: "Per-headline figures come from Google's asset reporting and are partial — no figure means not reported, not zero." },
+  remove: { nl: "Verwijder", en: "Remove" },
+  add: { nl: "Toevoegen", en: "Add" },
+} satisfies Record<string, L>;
 
 function TextTable({
   title,
@@ -65,6 +84,7 @@ function TextTable({
   editing,
   draft,
   onChange,
+  lang,
 }: {
   title: string;
   items: RsaText[];
@@ -72,6 +92,7 @@ function TextTable({
   editing: boolean;
   draft: string[];
   onChange: (next: string[]) => void;
+  lang: AdsLang;
 }) {
   const values = editing ? draft : items.map((i) => i.text);
   return (
@@ -102,7 +123,7 @@ function TextTable({
                   <button
                     onClick={() => onChange(draft.filter((_, j) => j !== i))}
                     className="text-muted-foreground hover:text-red-600 dark:hover:text-red-400"
-                    title="Verwijder"
+                    title={AD.remove[lang]}
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -112,17 +133,17 @@ function TextTable({
                   <span className="flex-1 text-sm truncate" title={text}>{text}</span>
                   {meta?.performanceLabel && PERF_STYLE[meta.performanceLabel] && (
                     <Badge className={PERF_STYLE[meta.performanceLabel].cls}>
-                      {PERF_STYLE[meta.performanceLabel].label}
+                      {PERF_STYLE[meta.performanceLabel].label[lang]}
                     </Badge>
                   )}
                   {meta?.approvalStatus && meta.approvalStatus !== "APPROVED" && APPROVAL_STYLE[meta.approvalStatus] && (
                     <Badge className={APPROVAL_STYLE[meta.approvalStatus].cls}>
-                      {APPROVAL_STYLE[meta.approvalStatus].label}
+                      {APPROVAL_STYLE[meta.approvalStatus].label[lang]}
                     </Badge>
                   )}
                   <span className="text-xs text-muted-foreground w-20 text-right">
                     {meta?.impressions !== null && meta?.impressions !== undefined
-                      ? `${meta.impressions.toLocaleString("nl-BE")} imp · ${meta.conversions ?? 0} conv`
+                      ? `${meta.impressions.toLocaleString(lang === "en" ? "en-GB" : "nl-BE")} imp · ${meta.conversions ?? 0} conv`
                       : "—"}
                   </span>
                 </>
@@ -136,7 +157,7 @@ function TextTable({
           onClick={() => onChange([...draft, ""])}
           className="mt-1.5 flex items-center gap-1 text-xs text-brand hover:underline"
         >
-          <Plus className="h-3 w-3" /> Toevoegen
+          <Plus className="h-3 w-3" /> {AD.add[lang]}
         </button>
       )}
     </div>
@@ -152,6 +173,7 @@ export function AdsSection({
   busy: string | null;
   onAction: (body: Record<string, unknown>, busyKey: string) => void;
 }) {
+  const { lang } = useAdsLang();
   const [ads, setAds] = useState<AdVariantRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -204,14 +226,14 @@ export function AdsSection({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Advertenties ({ads?.length ?? 0})</CardTitle>
+        <CardTitle className="text-lg">{AD.title[lang]} ({ads?.length ?? 0})</CardTitle>
       </CardHeader>
       <CardContent>
         {error && <p className="text-sm text-red-600 dark:text-red-400 py-2">{error}</p>}
         {!ads ? (
           <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
         ) : !ads.length ? (
-          <p className="text-sm text-muted-foreground py-6 text-center">Geen actieve advertenties met vertoningen in deze periode.</p>
+          <p className="text-sm text-muted-foreground py-6 text-center">{AD.empty[lang]}</p>
         ) : (
           <div className="space-y-2">
             {ads.map((ad) => {
@@ -229,7 +251,7 @@ export function AdsSection({
                         <Badge className={ad.status === "ENABLED"
                           ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                           : "bg-muted/40 text-muted-foreground border-border"}>
-                          {ad.status === "ENABLED" ? "Actief" : "Gepauzeerd"}
+                          {ad.status === "ENABLED" ? AD.active[lang] : AD.paused[lang]}
                         </Badge>
                         <span className="text-xs text-muted-foreground">{ad.adType.replace(/_/g, " ")}</span>
                       </div>
@@ -238,8 +260,8 @@ export function AdsSection({
                       </p>
                     </div>
                     <div className="flex gap-4 text-xs text-muted-foreground shrink-0">
-                      <span>{ad.impressions.toLocaleString("nl-BE")} imp</span>
-                      <span>{ad.clicks} kliks</span>
+                      <span>{ad.impressions.toLocaleString(lang === "en" ? "en-GB" : "nl-BE")} imp</span>
+                      <span>{ad.clicks} {AD.clicks[lang]}</span>
                       <span>{ad.impressions > 0 ? `${((ad.clicks / ad.impressions) * 100).toFixed(1)}%` : "—"} CTR</span>
                       <span className="font-medium text-foreground">{eur(ad.costMicros)}</span>
                       <span>{ad.conversions} conv</span>
@@ -256,7 +278,7 @@ export function AdsSection({
                         <div className="flex gap-2">
                           {!isEditing && (
                             <Button size="sm" variant="outline" onClick={() => startEdit(ad)}>
-                              <Pencil className="h-3.5 w-3.5 mr-1" /> Teksten bewerken
+                              <Pencil className="h-3.5 w-3.5 mr-1" /> {AD.editTexts[lang]}
                             </Button>
                           )}
                           {ad.status === "ENABLED" ? (
@@ -265,7 +287,7 @@ export function AdsSection({
                               disabled={busy === `adstatus:${ad.resourceName}`}
                               onClick={() => onAction({ type: "set_ad_status", customerId: ACCOUNT_ID, adResourceName: ad.resourceName, status: "PAUSED", label: ad.name }, `adstatus:${ad.resourceName}`)}
                             >
-                              <PauseCircle className="h-3.5 w-3.5 mr-1" /> Pauzeer
+                              <PauseCircle className="h-3.5 w-3.5 mr-1" /> {AD.pause[lang]}
                             </Button>
                           ) : (
                             <Button
@@ -273,7 +295,7 @@ export function AdsSection({
                               disabled={busy === `adstatus:${ad.resourceName}`}
                               onClick={() => onAction({ type: "set_ad_status", customerId: ACCOUNT_ID, adResourceName: ad.resourceName, status: "ENABLED", label: ad.name }, `adstatus:${ad.resourceName}`)}
                             >
-                              <PlayCircle className="h-3.5 w-3.5 mr-1" /> Activeer
+                              <PlayCircle className="h-3.5 w-3.5 mr-1" /> {AD.activate[lang]}
                             </Button>
                           )}
                         </div>
@@ -286,6 +308,7 @@ export function AdsSection({
                         editing={isEditing}
                         draft={draftHeadlines}
                         onChange={setDraftHeadlines}
+                        lang={lang}
                       />
                       <TextTable
                         title="Descriptions"
@@ -294,6 +317,7 @@ export function AdsSection({
                         editing={isEditing}
                         draft={draftDescriptions}
                         onChange={setDraftDescriptions}
+                        lang={lang}
                       />
 
                       {isEditing && (
@@ -304,21 +328,20 @@ export function AdsSection({
                             onClick={() => saveEdit(ad)}
                           >
                             <Check className="h-3.5 w-3.5 mr-1" />
-                            {busy === `ad:${ad.resourceName}` ? "Opslaan…" : "Opslaan naar Google Ads"}
+                            {busy === `ad:${ad.resourceName}` ? AD.saving[lang] : AD.saveToGoogle[lang]}
                           </Button>
                           <Button size="sm" variant="ghost" onClick={() => setEditing(null)}>
-                            Annuleer
+                            {AD.cancel[lang]}
                           </Button>
                           <p className="text-xs text-muted-foreground self-center">
-                            Opslaan wijzigt de live advertentie direct — er is geen conceptfase in Google Ads.
+                            {AD.saveWarning[lang]}
                           </p>
                         </div>
                       )}
 
                       {!isEditing && (
                         <p className="text-xs text-muted-foreground">
-                          Per-headline cijfers komen van Google&apos;s asset-rapportage en zijn deels —
-                          geen cijfer betekent niet gerapporteerd, niet nul.
+                          {AD.partialNote[lang]}
                         </p>
                       )}
                     </div>

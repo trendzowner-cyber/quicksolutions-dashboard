@@ -10,11 +10,52 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Sparkles, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { useAdsLang, type L } from "./i18n";
 
 interface KeywordDraft { text: string; matchType: "EXACT" | "PHRASE" | "BROAD" }
 
 const MATCH_TYPES = ["EXACT", "PHRASE", "BROAD"] as const;
-const MATCH_LABELS: Record<string, string> = { EXACT: "Exact", PHRASE: "Zinsdeel", BROAD: "Breed" };
+const MATCH_LABELS: Record<string, L> = {
+  EXACT: { nl: "Exact", en: "Exact" },
+  PHRASE: { nl: "Zinsdeel", en: "Phrase" },
+  BROAD: { nl: "Breed", en: "Broad" },
+};
+
+const CC = {
+  newCampaign: { nl: "Nieuwe campagne", en: "New campaign" },
+  wizardTitle: { nl: "Nieuwe campagne", en: "New campaign" },
+  stepOf: { nl: "stap", en: "step" },
+  of: { nl: "van", en: "of" },
+  stepBasics: { nl: "Basis", en: "Basics" },
+  stepKeywords: { nl: "Keywords", en: "Keywords" },
+  stepAd: { nl: "Advertentie", en: "Ad" },
+  campaignName: { nl: "Campagnenaam", en: "Campaign name" },
+  namePh: { nl: "bv. Gent — iPhone reparatie", en: "e.g. Ghent — iPhone repair" },
+  dailyBudget: { nl: "Dagbudget (€)", en: "Daily budget (€)" },
+  landingUrl: { nl: "Landingspagina URL", en: "Landing page URL" },
+  typeNote: { nl: "Type: Search · Start gepauzeerd · Handmatig CPC", en: "Type: Search · Starts paused · Manual CPC" },
+  keywordsLabel: { nl: "Keywords", en: "Keywords" },
+  aiDraft: { nl: "AI-concept", en: "AI draft" },
+  keywordPh: { nl: "Typ keyword + Enter", en: "Type keyword + Enter" },
+  needKeyword: { nl: "Voeg minstens 1 keyword toe of gebruik AI-concept.", en: "Add at least 1 keyword or use AI draft." },
+  headlinesLabel: { nl: "Headlines", en: "Headlines" },
+  maxChars30: { nl: "max 30 tekens", en: "max 30 chars" },
+  headlinePh: { nl: "Headline + Enter", en: "Headline + Enter" },
+  needHeadlines: { nl: "Minstens 3 headlines nodig", en: "At least 3 headlines needed" },
+  descriptionsLabel: { nl: "Beschrijvingen", en: "Descriptions" },
+  maxChars90: { nl: "max 90 tekens", en: "max 90 chars" },
+  descPh: { nl: "Beschrijving + Enter", en: "Description + Enter" },
+  needDescriptions: { nl: "Minstens 2 beschrijvingen nodig", en: "At least 2 descriptions needed" },
+  previous: { nl: "Vorige", en: "Previous" },
+  next: { nl: "Volgende", en: "Next" },
+  creating: { nl: "Aanmaken…", en: "Creating…" },
+  saveProposal: { nl: "Opslaan als voorstel", en: "Save as proposal" },
+  aiGenerated: { nl: "✓ AI-concept gegenereerd — controleer en pas aan", en: "✓ AI draft generated — review and adjust" },
+  aiFailed: { nl: "✗ AI-generatie mislukt", en: "✗ AI generation failed" },
+  aiNoAnswer: { nl: "AI gaf geen bruikbaar antwoord", en: "AI returned no usable answer" },
+  proposalCreated: { nl: "✓ Campagne-voorstel aangemaakt — keur goed in de Agent-tab", en: "✓ Campaign proposal created — approve it in the Agent tab" },
+  proposalReasonTail: { nl: "Start gepauzeerd.", en: "Starts paused." },
+} satisfies Record<string, L>;
 
 export function CreateCampaignWizard({
   accountId,
@@ -25,6 +66,7 @@ export function CreateCampaignWizard({
   showToast: (m: string) => void;
   onCreated?: () => void;
 }) {
+  const { lang } = useAdsLang();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
@@ -73,8 +115,11 @@ export function CreateCampaignWizard({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: `Genereer voor een nieuwe Search-campagne "${name}" (website: ${finalUrl}): 10 keywords (mix van exact/phrase), 8 headlines (max 30 tekens), 3 beschrijvingen (max 90 tekens). Antwoord als JSON: {"keywords":[{"text":"...","matchType":"EXACT|PHRASE|BROAD"}],"headlines":["..."],"descriptions":["..."]}`,
+          message: lang === "en"
+            ? `Generate for a new Search campaign "${name}" (website: ${finalUrl}): 10 keywords (mix of exact/phrase), 8 headlines (max 30 chars), 3 descriptions (max 90 chars). Answer as JSON: {"keywords":[{"text":"...","matchType":"EXACT|PHRASE|BROAD"}],"headlines":["..."],"descriptions":["..."]}`
+            : `Genereer voor een nieuwe Search-campagne "${name}" (website: ${finalUrl}): 10 keywords (mix van exact/phrase), 8 headlines (max 30 tekens), 3 beschrijvingen (max 90 tekens). Antwoord als JSON: {"keywords":[{"text":"...","matchType":"EXACT|PHRASE|BROAD"}],"headlines":["..."],"descriptions":["..."]}`,
           accountId,
+          lang,
         }),
       });
       const data = await res.json();
@@ -82,7 +127,7 @@ export function CreateCampaignWizard({
       // Parse the AI response from the chat answer
       const txt = data.assistantMessage?.content ?? "";
       const match = txt.match(/\{[\s\S]*"keywords"[\s\S]*\}/);
-      if (!match) throw new Error("AI gaf geen bruikbaar antwoord");
+      if (!match) throw new Error(CC.aiNoAnswer[lang]);
       const parsed = JSON.parse(match[0]);
       if (Array.isArray(parsed.keywords)) {
         setKeywords(parsed.keywords.slice(0, 15).map((k: { text?: string; matchType?: string }) => ({
@@ -97,9 +142,9 @@ export function CreateCampaignWizard({
       if (Array.isArray(parsed.descriptions)) {
         setDescriptions(parsed.descriptions.slice(0, 4).map((d: string) => String(d).slice(0, 90)).filter(Boolean));
       }
-      showToast("✓ AI-concept gegenereerd — controleer en pas aan");
+      showToast(CC.aiGenerated[lang]);
     } catch (e) {
-      showToast(`✗ AI-generatie mislukt: ${String(e)}`);
+      showToast(`${CC.aiFailed[lang]}: ${String(e)}`);
     } finally {
       setGenerating(false);
     }
@@ -122,14 +167,14 @@ export function CreateCampaignWizard({
         body: JSON.stringify({
           manual: true,
           type: "create_campaign",
-          title: `Nieuwe campagne: ${spec.name}`,
-          reason: `${keywords.length} keywords, ${headlines.length} headlines, €${budgetEuros}/dag. Start gepauzeerd.`,
+          title: lang === "en" ? `New campaign: ${spec.name}` : `Nieuwe campagne: ${spec.name}`,
+          reason: `${keywords.length} keywords, ${headlines.length} headlines, €${budgetEuros}${lang === "en" ? "/day" : "/dag"}. ${CC.proposalReasonTail[lang]}`,
           payload: { customerId: accountId, spec },
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.details || data.error);
-      showToast("✓ Campagne-voorstel aangemaakt — keur goed in de Agent-tab");
+      showToast(CC.proposalCreated[lang]);
       setOpen(false);
       setStep(0);
       setName(""); setKeywords([]); setHeadlines([]); setDescriptions([]);
@@ -144,17 +189,17 @@ export function CreateCampaignWizard({
   if (!open) {
     return (
       <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
-        <Plus className="h-4 w-4 mr-1" /> Nieuwe campagne
+        <Plus className="h-4 w-4 mr-1" /> {CC.newCampaign[lang]}
       </Button>
     );
   }
 
-  const steps = ["Basis", "Keywords", "Advertentie"];
+  const steps = [CC.stepBasics[lang], CC.stepKeywords[lang], CC.stepAd[lang]];
 
   return (
     <Card className="border-google/30">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-lg">Nieuwe campagne — stap {step + 1} van 3</CardTitle>
+        <CardTitle className="text-lg">{CC.wizardTitle[lang]} — {CC.stepOf[lang]} {step + 1} {CC.of[lang]} 3</CardTitle>
         <Button size="sm" variant="ghost" onClick={() => setOpen(false)}><X className="h-4 w-4" /></Button>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -169,24 +214,24 @@ export function CreateCampaignWizard({
         {step === 0 && (
           <div className="space-y-3">
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Campagnenaam</label>
+              <label className="text-xs font-medium text-muted-foreground">{CC.campaignName[lang]}</label>
               <input value={name} onChange={(e) => setName(e.target.value)} maxLength={128}
-                placeholder="bv. Gent — iPhone reparatie"
+                placeholder={CC.namePh[lang]}
                 className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Dagbudget (€)</label>
+                <label className="text-xs font-medium text-muted-foreground">{CC.dailyBudget[lang]}</label>
                 <input type="number" min="1" max="500" value={budgetEuros} onChange={(e) => setBudgetEuros(e.target.value)}
                   className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
               </div>
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Landingspagina URL</label>
+                <label className="text-xs font-medium text-muted-foreground">{CC.landingUrl[lang]}</label>
                 <input value={finalUrl} onChange={(e) => setFinalUrl(e.target.value)}
                   className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">Type: Search · Start gepauzeerd · Handmatig CPC</p>
+            <p className="text-xs text-muted-foreground">{CC.typeNote[lang]}</p>
           </div>
         )}
 
@@ -194,16 +239,16 @@ export function CreateCampaignWizard({
         {step === 1 && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-muted-foreground">Keywords ({keywords.length})</label>
+              <label className="text-xs font-medium text-muted-foreground">{CC.keywordsLabel[lang]} ({keywords.length})</label>
               <Button size="sm" variant="ghost" onClick={generateWithAI} disabled={generating || !name.trim()}>
                 {generating ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
-                AI-concept
+                {CC.aiDraft[lang]}
               </Button>
             </div>
             <div className="flex gap-2">
               <input value={kwInput} onChange={(e) => setKwInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && addKeyword()}
-                placeholder="Typ keyword + Enter"
+                placeholder={CC.keywordPh[lang]}
                 className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm" />
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -214,7 +259,7 @@ export function CreateCampaignWizard({
                     next[i] = { ...k, matchType: e.target.value as KeywordDraft["matchType"] };
                     setKeywords(next);
                   }} className="bg-transparent text-[10px] font-medium text-muted-foreground border-none outline-none">
-                    {MATCH_TYPES.map((mt) => <option key={mt} value={mt}>{MATCH_LABELS[mt]}</option>)}
+                    {MATCH_TYPES.map((mt) => <option key={mt} value={mt}>{MATCH_LABELS[mt][lang]}</option>)}
                   </select>
                   {k.text}
                   <button onClick={() => setKeywords(keywords.filter((_, j) => j !== i))} className="text-muted-foreground hover:text-red-500">
@@ -223,7 +268,7 @@ export function CreateCampaignWizard({
                 </span>
               ))}
             </div>
-            {keywords.length === 0 && <p className="text-xs text-muted-foreground">Voeg minstens 1 keyword toe of gebruik AI-concept.</p>}
+            {keywords.length === 0 && <p className="text-xs text-muted-foreground">{CC.needKeyword[lang]}</p>}
           </div>
         )}
 
@@ -232,16 +277,16 @@ export function CreateCampaignWizard({
           <div className="space-y-4">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-medium text-muted-foreground">Headlines ({headlines.length}/15, max 30 tekens)</label>
+                <label className="text-xs font-medium text-muted-foreground">{CC.headlinesLabel[lang]} ({headlines.length}/15, {CC.maxChars30[lang]})</label>
                 <Button size="sm" variant="ghost" onClick={generateWithAI} disabled={generating || !name.trim()}>
                   {generating ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
-                  AI-concept
+                  {CC.aiDraft[lang]}
                 </Button>
               </div>
               <div className="flex gap-2 mb-2">
                 <input value={headlineInput} onChange={(e) => setHeadlineInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && addHeadline()}
-                  placeholder="Headline + Enter" maxLength={30}
+                  placeholder={CC.headlinePh[lang]} maxLength={30}
                   className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm" />
               </div>
               <div className="space-y-1">
@@ -253,14 +298,14 @@ export function CreateCampaignWizard({
                   </div>
                 ))}
               </div>
-              {headlines.length < 3 && <p className="text-xs text-amber-600 dark:text-amber-400">Minstens 3 headlines nodig ({headlines.length}/3)</p>}
+              {headlines.length < 3 && <p className="text-xs text-amber-600 dark:text-amber-400">{CC.needHeadlines[lang]} ({headlines.length}/3)</p>}
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Beschrijvingen ({descriptions.length}/4, max 90 tekens)</label>
+              <label className="text-xs font-medium text-muted-foreground">{CC.descriptionsLabel[lang]} ({descriptions.length}/4, {CC.maxChars90[lang]})</label>
               <div className="flex gap-2 mt-2 mb-2">
                 <input value={descInput} onChange={(e) => setDescInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && addDescription()}
-                  placeholder="Beschrijving + Enter" maxLength={90}
+                  placeholder={CC.descPh[lang]} maxLength={90}
                   className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm" />
               </div>
               <div className="space-y-1">
@@ -272,7 +317,7 @@ export function CreateCampaignWizard({
                   </div>
                 ))}
               </div>
-              {descriptions.length < 2 && <p className="text-xs text-amber-600 dark:text-amber-400">Minstens 2 beschrijvingen nodig ({descriptions.length}/2)</p>}
+              {descriptions.length < 2 && <p className="text-xs text-amber-600 dark:text-amber-400">{CC.needDescriptions[lang]} ({descriptions.length}/2)</p>}
             </div>
           </div>
         )}
@@ -280,16 +325,16 @@ export function CreateCampaignWizard({
         {/* Navigation */}
         <div className="flex items-center justify-between border-t border-border pt-3">
           <Button size="sm" variant="outline" onClick={() => setStep(step - 1)} disabled={step === 0}>
-            <ChevronLeft className="h-4 w-4 mr-1" /> Vorige
+            <ChevronLeft className="h-4 w-4 mr-1" /> {CC.previous[lang]}
           </Button>
           <span className="text-xs text-muted-foreground">{steps[step]}</span>
           {step < 2 ? (
             <Button size="sm" onClick={() => setStep(step + 1)} disabled={!canNext}>
-              Volgende <ChevronRight className="h-4 w-4 ml-1" />
+              {CC.next[lang]} <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           ) : (
             <Button size="sm" onClick={submit} disabled={!canNext || saving}>
-              {saving ? "Aanmaken…" : "Opslaan als voorstel"}
+              {saving ? CC.creating[lang] : CC.saveProposal[lang]}
             </Button>
           )}
         </div>

@@ -11,6 +11,27 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Bot, Send, Trash2 } from "lucide-react";
 import { MiniMarkdown } from "@/components/ui/mini-markdown";
 import { timeAgo } from "@/lib/format";
+import { useAdsLang, type L } from "./i18n";
+
+const CS = {
+  chatTitle: { nl: "Chat met de agent", en: "Chat with the agent" },
+  clearChat: { nl: "Wis chat", en: "Clear chat" },
+  confirmClear: { nl: "Chatgeschiedenis wissen?", en: "Clear chat history?" },
+  chatCleared: { nl: "✓ Chat gewist", en: "✓ Chat cleared" },
+  error: { nl: "**Fout:**", en: "**Error:**" },
+  approveRun: { nl: "Keur goed & voer uit", en: "Approve & run" },
+  reject: { nl: "Wijs af", en: "Reject" },
+  executing: { nl: "Uitvoeren…", en: "Executing…" },
+  executed: { nl: "✓ Uitgevoerd", en: "✓ Executed" },
+  rejected: { nl: "Afgewezen", en: "Rejected" },
+  failedRetry: { nl: "Mislukt — probeer via de voorstellenlijst", en: "Failed — retry via the proposals list" },
+  remembered: { nl: "🧠 Onthouden:", en: "🧠 Remembered:" },
+  emptyState: { nl: "Stel een vraag over je account — de agent kijkt mee met je live data, je profiel en je regels. Het gesprek blijft bewaard.", en: "Ask a question about your account — the agent looks at your live data, your profile and your rules. The conversation is saved." },
+  placeholder: { nl: "Typ je vraag… (Enter = versturen, Shift+Enter = nieuwe lijn)", en: "Type your question… (Enter = send, Shift+Enter = new line)" },
+  toastExecuted: { nl: "✓ Uitgevoerd:", en: "✓ Executed:" },
+  toastRejected: { nl: "✓ Voorstel afgewezen", en: "✓ Proposal rejected" },
+  toastFailed: { nl: "✗ Actie mislukt:", en: "✗ Action failed:" },
+} satisfies Record<string, L>;
 
 interface ChatMessage {
   id: string;
@@ -30,17 +51,26 @@ interface ChatProposal {
   resultMsg?: string;
 }
 
-const PROPOSAL_TYPE_LABEL: Record<string, string> = {
-  add_negatives: "Negatief keyword",
-  pause_keyword: "Keyword pauzeren",
-  set_budget: "Budget",
+const PROPOSAL_TYPE_LABEL: Record<string, L> = {
+  add_negatives: { nl: "Negatief keyword", en: "Negative keyword" },
+  pause_keyword: { nl: "Keyword pauzeren", en: "Pause keyword" },
+  set_budget: { nl: "Budget", en: "Budget" },
+  remove_negative: { nl: "Negatief verwijderen", en: "Remove negative" },
+  create_campaign: { nl: "Nieuwe campagne", en: "New campaign" },
 };
 
-const SUGGESTIONS = [
-  "Welke zoektermen kosten het meest zonder conversie?",
-  "Welke campagne presteert het best deze maand?",
-  "Wat zou jij deze week als eerste aanpassen?",
-];
+const SUGGESTIONS: Record<"nl" | "en", string[]> = {
+  nl: [
+    "Welke zoektermen kosten het meest zonder conversie?",
+    "Welke campagne presteert het best deze maand?",
+    "Wat zou jij deze week als eerste aanpassen?",
+  ],
+  en: [
+    "Which search terms cost the most without conversions?",
+    "Which campaign performs best this month?",
+    "What would you change first this week?",
+  ],
+};
 
 export function AgentChat({
   accountId,
@@ -51,6 +81,7 @@ export function AgentChat({
   showToast: (m: string) => void;
   onProposalsChanged?: () => void;
 }) {
+  const { lang } = useAdsLang();
   const [messages, setMessages] = useState<ChatMessage[] | null>(null);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -91,7 +122,7 @@ export function AgentChat({
       const res = await fetch("/api/ads/agent/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: msg, accountId }),
+        body: JSON.stringify({ message: msg, accountId, lang }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.details || data.error);
@@ -114,7 +145,7 @@ export function AgentChat({
         {
           id: `err-${Date.now()}`,
           role: "assistant",
-          content: `**Fout:** ${String(e)}`,
+          content: `${CS.error[lang]} ${String(e)}`,
           createdAt: new Date().toISOString(),
         },
       ]);
@@ -125,7 +156,7 @@ export function AgentChat({
   }
 
   async function clearChat() {
-    if (!window.confirm("Chatgeschiedenis wissen?")) return;
+    if (!window.confirm(CS.confirmClear[lang])) return;
     setClearing(true);
     try {
       await fetch("/api/ads/agent/chat", {
@@ -134,7 +165,7 @@ export function AgentChat({
         body: JSON.stringify({ accountId }),
       });
       setMessages([]);
-      showToast("✓ Chat gewist");
+      showToast(CS.chatCleared[lang]);
     } finally {
       setClearing(false);
     }
@@ -171,7 +202,7 @@ export function AgentChat({
           }
         )
       );
-      showToast(decision === "approve" ? `✓ Uitgevoerd: ${data.summary}` : "✓ Voorstel afgewezen");
+      showToast(decision === "approve" ? `${CS.toastExecuted[lang]} ${data.summary}` : CS.toastRejected[lang]);
       onProposalsChanged?.();
     } catch (e) {
       setMessages((m) =>
@@ -182,7 +213,7 @@ export function AgentChat({
           }
         )
       );
-      showToast(`✗ Actie mislukt: ${String(e)}`);
+      showToast(`${CS.toastFailed[lang]} ${String(e)}`);
     }
   }
 
@@ -190,12 +221,12 @@ export function AgentChat({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-3">
         <CardTitle className="text-lg flex items-center gap-2">
-          <Bot className="h-5 w-5 text-google" /> Chat met de agent
+          <Bot className="h-5 w-5 text-google" /> {CS.chatTitle[lang]}
         </CardTitle>
         {messages && messages.length > 0 && (
           <Button size="sm" variant="ghost" onClick={clearChat} disabled={clearing}
             className="text-muted-foreground hover:text-red-600 dark:hover:text-red-400">
-            <Trash2 className="h-4 w-4 mr-1" /> Wis chat
+            <Trash2 className="h-4 w-4 mr-1" /> {CS.clearChat[lang]}
           </Button>
         )}
       </CardHeader>
@@ -210,11 +241,10 @@ export function AgentChat({
           ) : messages.length === 0 && !sending ? (
             <div className="py-6 text-center space-y-4">
               <p className="text-sm text-muted-foreground">
-                Stel een vraag over je account — de agent kijkt mee met je live data,
-                je profiel en je regels. Het gesprek blijft bewaard.
+                {CS.emptyState[lang]}
               </p>
               <div className="flex flex-wrap justify-center gap-2">
-                {SUGGESTIONS.map((s) => (
+                {SUGGESTIONS[lang].map((s) => (
                   <button
                     key={s}
                     onClick={() => send(s)}
@@ -250,7 +280,7 @@ export function AgentChat({
                       <div key={p.id} className="mt-2 rounded-xl border border-google/30 bg-google/5 px-3.5 py-2.5">
                         <div className="flex items-center gap-2">
                           <span className="rounded-full border border-google/30 bg-google/10 px-2 py-0.5 text-[10px] font-medium text-google">
-                            {PROPOSAL_TYPE_LABEL[p.type] ?? p.type}
+                            {PROPOSAL_TYPE_LABEL[p.type]?.[lang] ?? p.type}
                           </span>
                           <p className="text-sm font-medium">{p.title}</p>
                         </div>
@@ -258,27 +288,27 @@ export function AgentChat({
                         {p.state === "pending" ? (
                           <div className="mt-2 flex gap-2">
                             <Button size="sm" onClick={() => decideProposal(m.id, p.id, "approve")}>
-                              Keur goed & voer uit
+                              {CS.approveRun[lang]}
                             </Button>
                             <Button size="sm" variant="outline" onClick={() => decideProposal(m.id, p.id, "reject")}>
-                              Wijs af
+                              {CS.reject[lang]}
                             </Button>
                           </div>
                         ) : p.state === "executing" ? (
-                          <p className="mt-2 text-xs text-muted-foreground">Uitvoeren…</p>
+                          <p className="mt-2 text-xs text-muted-foreground">{CS.executing[lang]}</p>
                         ) : p.state === "executed" ? (
-                          <p className="mt-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">✓ Uitgevoerd{p.resultMsg ? ` — ${p.resultMsg}` : ""}</p>
+                          <p className="mt-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">{CS.executed[lang]}{p.resultMsg ? ` — ${p.resultMsg}` : ""}</p>
                         ) : p.state === "rejected" ? (
-                          <p className="mt-2 text-xs text-muted-foreground">Afgewezen</p>
+                          <p className="mt-2 text-xs text-muted-foreground">{CS.rejected[lang]}</p>
                         ) : (
-                          <p className="mt-2 text-xs text-red-600 dark:text-red-400">Mislukt — probeer via de voorstellenlijst</p>
+                          <p className="mt-2 text-xs text-red-600 dark:text-red-400">{CS.failedRetry[lang]}</p>
                         )}
                       </div>
                     ))}
                     <p className="mt-1 text-[10px] text-muted-foreground">{timeAgo(m.createdAt)}</p>
                     {m.learned && m.learned.length > 0 && (
                       <p className="mt-1 text-[10px] text-google">
-                        🧠 Onthouden: {m.learned.join(" · ")}
+                        {CS.remembered[lang]} {m.learned.join(" · ")}
                       </p>
                     )}
                   </div>
@@ -316,7 +346,7 @@ export function AgentChat({
                 send();
               }
             }}
-            placeholder="Typ je vraag… (Enter = versturen, Shift+Enter = nieuwe lijn)"
+            placeholder={CS.placeholder[lang]}
             rows={1}
             maxLength={2000}
             className="flex-1 resize-none rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-google/40"

@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Google Ads niet verbonden" }, { status: 500 });
     }
     const accountId = String(body?.accountId ?? "") || ADS_ACCOUNTS[0];
+    const lang: "nl" | "en" = body?.lang === "en" ? "en" : "nl";
 
     // Persist the user message first — even if the AI call fails, the log
     // shows what was asked.
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
       .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
     const accessToken = await getAdAccessToken();
-    const result = await chatWithAgent(accessToken, accountId, history, message);
+    const result = await chatWithAgent(accessToken, accountId, history, message, lang);
 
     const assistantMsg = await db.adsAgentChatMessage.create({
       data: { accountId, role: "assistant", content: result.answer },

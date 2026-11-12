@@ -9,6 +9,29 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search as SearchIcon, Download } from "lucide-react";
+import { useAdsLang, type L } from "./i18n";
+
+const STS = {
+  allTerms: { nl: "Alle zoektermen", en: "All search terms" },
+  searchPlaceholder: { nl: "Zoek op term, keyword, campagne…", en: "Search term, keyword, campaign…" },
+  onlyFlagged: { nl: "Alleen geflagd", en: "Only flagged" },
+  noneFound: { nl: "Geen zoektermen gevonden.", en: "No search terms found." },
+  colTerm: { nl: "Zoekterm", en: "Search term" },
+  colMatched: { nl: "Matched keyword", en: "Matched keyword" },
+  colStatus: { nl: "Status", en: "Status" },
+  colCampaign: { nl: "Campagne / Adgroep", en: "Campaign / Ad group" },
+  colClicks: { nl: "Kliks", en: "Clicks" },
+  colCost: { nl: "Kosten", en: "Cost" },
+  block: { nl: "Blokkeer", en: "Block" },
+  bigList: { nl: "Grote lijst — gebruik het zoekveld of download de CSV", en: "Large list — use the search field or download the CSV" },
+  rowsWord: { nl: "rijen", en: "rows" },
+  bigListTail: { nl: "om alles in Excel te zien.", en: "to see everything in Excel." },
+  pageOf: { nl: "Pagina", en: "Page" },
+  ofWord: { nl: "van", en: "of" },
+  termsWord: { nl: "termen", en: "terms" },
+  prev: { nl: "‹ Vorige", en: "‹ Previous" },
+  next: { nl: "Volgende ›", en: "Next ›" },
+} satisfies Record<string, L>;
 
 export interface SearchTermRow {
   term: string;
@@ -31,26 +54,26 @@ export interface SearchTermRow {
 export const eur = (micros: number) =>
   `€${(micros / 1_000_000).toLocaleString("nl-BE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-export const VERDICT_STYLE: Record<string, { label: string; cls: string }> = {
-  waste: { label: "Verspilling", cls: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30" },
-  review: { label: "Beoordelen", cls: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30" },
-  expensive: { label: "Duur", cls: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30" },
-  low_ctr: { label: "Lage CTR", cls: "bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30" },
-  winner: { label: "Winnaar", cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" },
-  neutral: { label: "OK", cls: "bg-muted/40 text-muted-foreground border-border" },
+export const VERDICT_STYLE: Record<string, { label: L; cls: string }> = {
+  waste: { label: { nl: "Verspilling", en: "Waste" }, cls: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30" },
+  review: { label: { nl: "Beoordelen", en: "Review" }, cls: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30" },
+  expensive: { label: { nl: "Duur", en: "Expensive" }, cls: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30" },
+  low_ctr: { label: { nl: "Lage CTR", en: "Low CTR" }, cls: "bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30" },
+  winner: { label: { nl: "Winnaar", en: "Winner" }, cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" },
+  neutral: { label: { nl: "OK", en: "OK" }, cls: "bg-muted/40 text-muted-foreground border-border" },
 };
 
-export const AI_STYLE: Record<string, { label: string; cls: string }> = {
-  irrelevant: { label: "AI: irrelevant", cls: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30" },
-  relevant: { label: "AI: relevant", cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" },
-  brand: { label: "AI: merk", cls: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30" },
+export const AI_STYLE: Record<string, { label: L; cls: string }> = {
+  irrelevant: { label: { nl: "AI: irrelevant", en: "AI: irrelevant" }, cls: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30" },
+  relevant: { label: { nl: "AI: relevant", en: "AI: relevant" }, cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" },
+  brand: { label: { nl: "AI: merk", en: "AI: brand" }, cls: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30" },
 };
 
-const TERM_STATUS: Record<string, { label: string; cls: string }> = {
-  ADDED: { label: "Keyword", cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" },
-  EXCLUDED: { label: "Uitgesloten", cls: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30" },
-  ADDED_EXCLUDED: { label: "Keyword + uitgesloten", cls: "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30" },
-  NONE: { label: "—", cls: "bg-muted/40 text-muted-foreground border-border" },
+const TERM_STATUS: Record<string, { label: L; cls: string }> = {
+  ADDED: { label: { nl: "Keyword", en: "Keyword" }, cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" },
+  EXCLUDED: { label: { nl: "Uitgesloten", en: "Excluded" }, cls: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30" },
+  ADDED_EXCLUDED: { label: { nl: "Keyword + uitgesloten", en: "Keyword + excluded" }, cls: "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30" },
+  NONE: { label: { nl: "—", en: "—" }, cls: "bg-muted/40 text-muted-foreground border-border" },
 };
 
 export function SearchTermsSection({
@@ -68,6 +91,7 @@ export function SearchTermsSection({
   const [onlyFlagged, setOnlyFlagged] = useState(false);
   const [page, setPage] = useState(0);
   const PER_PAGE = 50;
+  const { lang } = useAdsLang();
 
   const rows = (terms ?? []).filter((t) => {
     if (onlyFlagged && t.verdict === "neutral") return false;
@@ -86,7 +110,9 @@ export function SearchTermsSection({
       const s = String(v);
       return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
-    const header = ["Zoekterm", "Matched keyword", "Match", "Status", "Campagne", "Adgroep", "Kliks", "Vertoningen", "CTR %", "Gem. CPC", "Kosten", "Conversies", "Verdict", "AI"];
+    const header = lang === "en"
+      ? ["Search term", "Matched keyword", "Match", "Status", "Campaign", "Ad group", "Clicks", "Impressions", "CTR %", "Avg. CPC", "Cost", "Conversions", "Verdict", "AI"]
+      : ["Zoekterm", "Matched keyword", "Match", "Status", "Campagne", "Adgroep", "Kliks", "Vertoningen", "CTR %", "Gem. CPC", "Kosten", "Conversies", "Verdict", "AI"];
     const lines = rows.map((t) => [
       t.term,
       t.matchedKeyword ?? "",
@@ -116,13 +142,13 @@ export function SearchTermsSection({
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <SearchIcon className="h-5 w-5 text-brand" /> Alle zoektermen ({rows.length})
+          <SearchIcon className="h-5 w-5 text-brand" /> {STS.allTerms[lang]} ({rows.length})
         </CardTitle>
         <div className="flex flex-wrap items-center gap-2">
           <input
             value={filter}
             onChange={(e) => { setFilter(e.target.value); setPage(0); }}
-            placeholder="Zoek op term, keyword, campagne…"
+            placeholder={STS.searchPlaceholder[lang]}
             className="rounded-md border border-border bg-background px-3 py-2 text-sm w-64"
           />
           <label className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -132,7 +158,7 @@ export function SearchTermsSection({
               onChange={(e) => { setOnlyFlagged(e.target.checked); setPage(0); }}
               className="accent-red-500"
             />
-            Alleen geflagd
+            {STS.onlyFlagged[lang]}
           </label>
           <Button size="sm" variant="outline" onClick={downloadCsv} disabled={!rows.length}>
             <Download className="h-4 w-4 mr-1" /> CSV
@@ -143,21 +169,21 @@ export function SearchTermsSection({
         {loading ? (
           <div className="space-y-2">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
         ) : !rows.length ? (
-          <p className="text-sm text-muted-foreground py-6 text-center">Geen zoektermen gevonden.</p>
+          <p className="text-sm text-muted-foreground py-6 text-center">{STS.noneFound[lang]}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-muted-foreground border-b border-border">
-                  <th className="py-2 pr-3">Zoekterm</th>
-                  <th className="py-2 pr-3">Matched keyword</th>
-                  <th className="py-2 pr-3">Status</th>
-                  <th className="py-2 pr-3">Campagne / Adgroep</th>
-                  <th className="py-2 pr-3 text-right">Kliks</th>
+                  <th className="py-2 pr-3">{STS.colTerm[lang]}</th>
+                  <th className="py-2 pr-3">{STS.colMatched[lang]}</th>
+                  <th className="py-2 pr-3">{STS.colStatus[lang]}</th>
+                  <th className="py-2 pr-3">{STS.colCampaign[lang]}</th>
+                  <th className="py-2 pr-3 text-right">{STS.colClicks[lang]}</th>
                   <th className="py-2 pr-3 text-right">Impr.</th>
                   <th className="py-2 pr-3 text-right">CTR</th>
                   <th className="py-2 pr-3 text-right">CPC</th>
-                  <th className="py-2 pr-3 text-right">Kosten</th>
+                  <th className="py-2 pr-3 text-right">{STS.colCost[lang]}</th>
                   <th className="py-2 pr-3 text-right">Conv.</th>
                   <th className="py-2 pr-3">Verdict</th>
                   <th className="py-2"></th>
@@ -180,7 +206,7 @@ export function SearchTermsSection({
                           <>{t.matchedKeyword} <span className="text-muted-foreground/60">({t.matchType})</span></>
                         ) : "—"}
                       </td>
-                      <td className="py-2 pr-3"><Badge className={st.cls}>{st.label}</Badge></td>
+                      <td className="py-2 pr-3"><Badge className={st.cls}>{st.label[lang]}</Badge></td>
                       <td className="py-2 pr-3 text-xs text-muted-foreground max-w-48">
                         <div className="truncate" title={t.campaignName}>{t.campaignName}</div>
                         <div className="truncate text-muted-foreground/60" title={t.adGroupName}>{t.adGroupName}</div>
@@ -198,9 +224,9 @@ export function SearchTermsSection({
                       <td className="py-2 pr-3">
                         <div className="flex flex-col gap-1 items-start">
                           {t.verdict !== "neutral" && (
-                            <span title={t.reason}><Badge className={v.cls}>{v.label}</Badge></span>
+                            <span title={t.reason}><Badge className={v.cls}>{v.label[lang]}</Badge></span>
                           )}
-                          {ai && <span title={t.aiReason ?? ""}><Badge className={ai.cls}>{ai.label}</Badge></span>}
+                          {ai && <span title={t.aiReason ?? ""}><Badge className={ai.cls}>{ai.label[lang]}</Badge></span>}
                           {t.verdict === "neutral" && !ai && <span className="text-xs text-muted-foreground">—</span>}
                         </div>
                       </td>
@@ -214,7 +240,7 @@ export function SearchTermsSection({
                             disabled={busy === `st:${key}`}
                             onClick={() => onExclude(t)}
                           >
-                            {busy === `st:${key}` ? "…" : "Blokkeer"}
+                            {busy === `st:${key}` ? "…" : STS.block[lang]}
                           </Button>
                         )}
                       </td>
@@ -229,17 +255,17 @@ export function SearchTermsSection({
               if (totalPages <= 1) return null;
               return (
                 <div className="flex items-center justify-center gap-1 pt-3">
-                  <Button size="sm" variant="outline" disabled={clamped === 0} onClick={() => setPage(clamped - 1)}>‹ Vorige</Button>
+                  <Button size="sm" variant="outline" disabled={clamped === 0} onClick={() => setPage(clamped - 1)}>{STS.prev[lang]}</Button>
                   <span className="px-2 text-xs text-muted-foreground">
-                    Pagina {clamped + 1} van {totalPages} · {rows.length} termen
+                    {STS.pageOf[lang]} {clamped + 1} {STS.ofWord[lang]} {totalPages} · {rows.length} {STS.termsWord[lang]}
                   </span>
-                  <Button size="sm" variant="outline" disabled={clamped >= totalPages - 1} onClick={() => setPage(clamped + 1)}>Volgende ›</Button>
+                  <Button size="sm" variant="outline" disabled={clamped >= totalPages - 1} onClick={() => setPage(clamped + 1)}>{STS.next[lang]}</Button>
                 </div>
               );
             })()}
             {rows.length > 300 && (
               <p className="text-xs text-muted-foreground text-center py-3">
-                Grote lijst — gebruik het zoekveld of download de CSV ({rows.length} rijen) om alles in Excel te zien.
+                {STS.bigList[lang]} ({rows.length} {STS.rowsWord[lang]}) {STS.bigListTail[lang]}
               </p>
             )}
           </div>

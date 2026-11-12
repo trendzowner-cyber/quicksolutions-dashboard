@@ -16,6 +16,77 @@ import {
   BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import { dateShort } from "@/lib/format";
+import { useAdsLang, type L } from "./i18n";
+
+const AP = {
+  ownShareTitle: { nl: "Jouw aandeel in de veiling", en: "Your share of the auction" },
+  ownShareDesc: { nl: "Search impression share van je eigen account — hoeveel van de veilingen je wint, en hoeveel je verliest door rank (advertentierangschikking) of budget.", en: "Search impression share of your own account — how many auctions you win, and how many you lose to rank (ad rank) or budget." },
+  noIsData: { nl: "Geen Search-campagnes met impression share in deze periode.", en: "No Search campaigns with impression share in this period." },
+  dayG: { nl: "Dag", en: "Day" },
+  weekG: { nl: "Week", en: "Week" },
+  monthG: { nl: "Maand", en: "Month" },
+  impressionsBar: { nl: "Vertoningen", en: "Impressions" },
+  lostRankBar: { nl: "Verloren: rank", en: "Lost: rank" },
+  lostBudgetBar: { nl: "Verloren: budget", en: "Lost: budget" },
+  whatChanges: { nl: "Wat verandert er", en: "What's changing" },
+  whoCompetes: { nl: "Wie biedt mee in je veilingen", en: "Who's bidding in your auctions" },
+  syncing: { nl: "Syncen…", en: "Syncing…" },
+  syncNow: { nl: "Sync nu", en: "Sync now" },
+  noAuctionData: { nl: "Nog geen auction-data. Klik op \"Sync nu\" — de eerste run haalt 90 dagen historiek op uit de Google Ads API.", en: "No auction data yet. Click \"Sync now\" — the first run fetches 90 days of history from the Google Ads API." },
+  searchDomain: { nl: "Zoek domein…", en: "Search domain…" },
+  ofDomains: { nl: "van", en: "of" },
+  domainsWord: { nl: "domeinen", en: "domains" },
+  colDomain: { nl: "Domein", en: "Domain" },
+  colFirstSeen: { nl: "Eerst gezien", en: "First seen" },
+  colLastSeen: { nl: "Laatst gezien", en: "Last seen" },
+  colPresent: { nl: "Aanwezig (30d)", en: "Present (30d)" },
+  colCampaigns: { nl: "Campagnes", en: "Campaigns" },
+  drillTitle: { nl: "Toon welke keywords dit domein beconcurreert", en: "Show which keywords this domain competes on" },
+  loading: { nl: "laden…", en: "loading…" },
+  topDomains: { nl: "domeinen — aanwezige dagen van de laatste 30 (geen impression share)", en: "domains — days present in the last 30 (not impression share)" },
+  daysAxis: { nl: "dagen", en: "days" },
+  ofThirtyDays: { nl: "van 30 dagen", en: "of 30 days" },
+  presentTip: { nl: "Aanwezig", en: "Present" },
+  coverageFrom: { nl: "Dekking vanaf", en: "Coverage from" },
+  observations: { nl: "waarnemingen", en: "observations" },
+  lastSync: { nl: "laatste sync", en: "last sync" },
+  csvFallback: { nl: "Handmatige CSV-import (fallback)", en: "Manual CSV import (fallback)" },
+  csvHelp: { nl: "Alleen nodig voor scopes die de API niet dekt. Google Ads → Campagnes → Statistieken en rapporten → Auction insights → download als CSV → plak hieronder.", en: "Only needed for scopes the API doesn't cover. Google Ads → Campaigns → Insights and reports → Auction insights → download as CSV → paste below." },
+  exportDate: { nl: "Datum van export:", en: "Export date:" },
+  importing: { nl: "Importeren…", en: "Importing…" },
+  import: { nl: "Importeer", en: "Import" },
+  competesOn: { nl: "Beconcurreert", en: "Competes on" },
+  keywordsWord: { nl: "keywords", en: "keywords" },
+  keywordWord: { nl: "keyword", en: "keyword" },
+  closeDrill: { nl: "Sluit drilldown", en: "Close drilldown" },
+  drillSearch: { nl: "Zoek in keywords, adgroepen, campagnes…", en: "Search keywords, ad groups, campaigns…" },
+  ofKeywords: { nl: "van", en: "of" },
+  filteredFrom: { nl: "gefilterd uit", en: "filtered from" },
+  colKeyword: { nl: "Keyword", en: "Keyword" },
+  colMatch: { nl: "Match", en: "Match" },
+  colAdgroup: { nl: "Adgroep", en: "Ad group" },
+  colCampaign: { nl: "Campagne", en: "Campaign" },
+  colDays: { nl: "Dagen", en: "Days" },
+  colLast: { nl: "Laatst", en: "Last" },
+  showMore: { nl: "Toon meer", en: "Show more" },
+  syncDone: { nl: "✓ Sync klaar —", en: "✓ Sync done —" },
+  syncRows: { nl: "nieuwe aanwezigheidsrijen opgeslagen", en: "new presence rows stored" },
+  syncFailed: { nl: "✗ Sync mislukt:", en: "✗ Sync failed:" },
+  importDone: { nl: "domeinen geïmporteerd (CSV-dagpunt)", en: "domains imported (CSV day point)" },
+  importFailed: { nl: "✗ Import mislukt:", en: "✗ Import failed:" },
+  drillFailed: { nl: "✗ Drilldown mislukt:", en: "✗ Drilldown failed:" },
+  stNew: { nl: "Nieuw", en: "New" },
+  stExpanding: { nl: "Actiever", en: "More active" },
+  stSteady: { nl: "Stabiel", en: "Steady" },
+  stCooling: { nl: "Afbouwend", en: "Cooling down" },
+} satisfies Record<string, L>;
+
+const STATUS_STYLE: Record<string, { label: L; cls: string }> = {
+  new: { label: AP.stNew, cls: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30" },
+  expanding: { label: AP.stExpanding, cls: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30" },
+  steady: { label: AP.stSteady, cls: "bg-muted/40 text-muted-foreground border-border" },
+  cooling: { label: AP.stCooling, cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" },
+};
 
 interface PresenceSummary {
   domain: string;
@@ -60,13 +131,6 @@ interface DomainDrilldown {
   note: string;
 }
 
-const STATUS_STYLE: Record<string, { label: string; cls: string }> = {
-  new: { label: "Nieuw", cls: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30" },
-  expanding: { label: "Actiever", cls: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30" },
-  steady: { label: "Stabiel", cls: "bg-muted/40 text-muted-foreground border-border" },
-  cooling: { label: "Afbouwend", cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" },
-};
-
 const TONE_STYLE: Record<string, string> = {
   warning: "border-amber-500/30 bg-amber-500/5",
   good: "border-emerald-500/30 bg-emerald-500/5",
@@ -78,9 +142,9 @@ const TONE_STYLE: Record<string, string> = {
 interface SharePoint { date: string; share: number; lostRank: number; lostBudget: number }
 type Granularity = "day" | "week" | "month";
 
-const GRAN_LABEL: Record<Granularity, string> = { day: "Dag", week: "Week", month: "Maand" };
+const GRAN_LABEL: Record<Granularity, L> = { day: AP.dayG, week: AP.weekG, month: AP.monthG };
 
-function bucketShare(points: SharePoint[], mode: Granularity) {
+function bucketShare(points: SharePoint[], mode: Granularity, lang: "nl" | "en" = "nl") {
   const toPct = (p: SharePoint) => ({
     share: Math.round(p.share * 1000) / 10,
     lostRank: Math.round(p.lostRank * 1000) / 10,
@@ -108,7 +172,7 @@ function bucketShare(points: SharePoint[], mode: Granularity) {
     const avg = (f: (p: SharePoint) => number) => arr.reduce((s, p) => s + f(p), 0) / arr.length;
     return {
       label: mode === "month"
-        ? new Date(key + "-01T00:00:00").toLocaleDateString("nl-BE", { month: "short", year: "numeric" })
+        ? new Date(key + "-01T00:00:00").toLocaleDateString(lang === "en" ? "en-GB" : "nl-BE", { month: "short", year: "numeric" })
         : `w ${dateShort(key)}`,
       share: Math.round(avg((p) => p.share) * 1000) / 10,
       lostRank: Math.round(avg((p) => p.lostRank) * 1000) / 10,
@@ -120,6 +184,7 @@ function bucketShare(points: SharePoint[], mode: Granularity) {
 function OwnShareCard() {
   const [series, setSeries] = useState<SharePoint[] | null>(null);
   const [gran, setGran] = useState<Granularity>("day");
+  const { lang } = useAdsLang();
 
   useEffect(() => {
     fetch("/api/ads/inventory")
@@ -128,18 +193,17 @@ function OwnShareCard() {
       .catch(() => setSeries([]));
   }, []);
 
-  const data = series ? bucketShare(series, gran) : [];
+  const data = series ? bucketShare(series, gran, lang) : [];
 
   return (
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
         <div>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <TrendingUp className="h-5 w-5 text-google" /> Jouw aandeel in de veiling
+            <TrendingUp className="h-5 w-5 text-google" /> {AP.ownShareTitle[lang]}
           </CardTitle>
           <p className="text-xs text-muted-foreground mt-1">
-            Search impression share van je eigen account — hoeveel van de veilingen je wint,
-            en hoeveel je verliest door rank (advertentierangschikking) of budget.
+            {AP.ownShareDesc[lang]}
           </p>
         </div>
         <div className="flex gap-1 rounded-lg border border-border p-0.5">
@@ -151,7 +215,7 @@ function OwnShareCard() {
                 gran === g ? "bg-google/15 text-google font-medium" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {GRAN_LABEL[g]}
+              {GRAN_LABEL[g][lang]}
             </button>
           ))}
         </div>
@@ -161,7 +225,7 @@ function OwnShareCard() {
           <Skeleton className="h-56 w-full" />
         ) : !data.length ? (
           <p className="text-sm text-muted-foreground py-6 text-center">
-            Geen Search-campagnes met impression share in deze periode.
+            {AP.noIsData[lang]}
           </p>
         ) : (
           <ResponsiveContainer width="100%" height={240}>
@@ -176,9 +240,9 @@ function OwnShareCard() {
                 formatter={(value, name) => [`${Number(value).toFixed(1)}%`, name]}
               />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="share" stackId="is" name="Vertoningen" fill="#10b981" />
-              <Bar dataKey="lostRank" stackId="is" name="Verloren: rank" fill="#f59e0b" />
-              <Bar dataKey="lostBudget" stackId="is" name="Verloren: budget" fill="#ef4444" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="share" stackId="is" name={AP.impressionsBar[lang]} fill="#10b981" />
+              <Bar dataKey="lostRank" stackId="is" name={AP.lostRankBar[lang]} fill="#f59e0b" />
+              <Bar dataKey="lostBudget" stackId="is" name={AP.lostBudgetBar[lang]} fill="#ef4444" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}
@@ -188,6 +252,7 @@ function OwnShareCard() {
 }
 
 export function AuctionPresenceSection({ showToast }: { showToast: (m: string) => void }) {
+  const { lang } = useAdsLang();
   const [competitors, setCompetitors] = useState<PresenceSummary[] | null>(null);
   const [coverage, setCoverage] = useState<PresenceCoverage | null>(null);
   const [changes, setChanges] = useState<AuctionChange[]>([]);
@@ -218,7 +283,7 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
       if (!res.ok) throw new Error(data.details || data.error);
       setDrilldown(data);
     } catch (e) {
-      showToast(`✗ Drilldown mislukt: ${String(e)}`);
+      showToast(`${AP.drillFailed[lang]} ${String(e)}`);
     } finally {
       setDrillLoading(null);
     }
@@ -238,7 +303,9 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
       const s = String(v);
       return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
-    const header = ["Keyword", "Match", "Adgroep", "Campagne", "Dagen aanwezig", "Eerst gezien", "Laatst gezien"];
+    const header = lang === "en"
+      ? ["Keyword", "Match", "Ad group", "Campaign", "Days present", "First seen", "Last seen"]
+      : ["Keyword", "Match", "Adgroep", "Campagne", "Dagen aanwezig", "Eerst gezien", "Laatst gezien"];
     const lines = drilldown.keywords.map((k) =>
       [k.text, k.matchType, k.adGroup, k.campaign, k.daysSeen, k.firstSeen, k.lastSeen].map(esc).join(";")
     );
@@ -276,10 +343,10 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
       const data = await res.json();
       if (!res.ok) throw new Error(data.details || data.error);
       const total = (data.results ?? []).reduce((s: number, r: { stored: number }) => s + r.stored, 0);
-      showToast(`✓ Sync klaar — ${total} nieuwe aanwezigheidsrijen opgeslagen`);
+      showToast(`${AP.syncDone[lang]} ${total} ${AP.syncRows[lang]}`);
       await load();
     } catch (e) {
-      showToast(`✗ Sync mislukt: ${String(e)}`);
+      showToast(`${AP.syncFailed[lang]} ${String(e)}`);
     } finally {
       setSyncing(false);
     }
@@ -295,11 +362,11 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.details || data.error);
-      showToast(`✓ ${data.imported} domeinen geïmporteerd (CSV-dagpunt)`);
+      showToast(`✓ ${data.imported} ${AP.importDone[lang]}`);
       setCsv("");
       await load();
     } catch (e) {
-      showToast(`✗ Import mislukt: ${String(e)}`);
+      showToast(`${AP.importFailed[lang]} ${String(e)}`);
     } finally {
       setImporting(false);
     }
@@ -316,7 +383,7 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
       {/* What's changing — max 3 insights, rest lives in the table */}
       {changes.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground">Wat verandert er</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">{AP.whatChanges[lang]}</h3>
           {changes.slice(0, 3).map((c, i) => (
             <div key={i} className={`flex items-start gap-3 rounded-lg border px-4 py-3 ${TONE_STYLE[c.tone]}`}>
               {c.tone === "warning" ? (
@@ -338,11 +405,11 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Swords className="h-5 w-5 text-brand" /> Wie biedt mee in je veilingen
+            <Swords className="h-5 w-5 text-brand" /> {AP.whoCompetes[lang]}
           </CardTitle>
           <Button size="sm" variant="outline" onClick={syncNow} disabled={syncing}>
             <RefreshCw className={`h-4 w-4 mr-1 ${syncing ? "animate-spin" : ""}`} />
-            {syncing ? "Syncen…" : "Sync nu"}
+            {syncing ? AP.syncing[lang] : AP.syncNow[lang]}
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -351,8 +418,7 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
           ) : !competitors?.length ? (
             <div className="text-center py-6 space-y-2">
               <p className="text-sm text-muted-foreground">
-                Nog geen auction-data. Klik op &quot;Sync nu&quot; — de eerste run haalt 90 dagen
-                historiek op uit de Google Ads API.
+                {AP.noAuctionData[lang]}
               </p>
             </div>
           ) : (
@@ -364,12 +430,12 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
                   <input
                     value={tableQuery}
                     onChange={(e) => setTableQuery(e.target.value)}
-                    placeholder="Zoek domein…"
+                    placeholder={AP.searchDomain[lang]}
                     className="w-full rounded-md border border-border bg-background pl-8 pr-3 py-1.5 text-sm"
                   />
                 </div>
                 <span className="text-xs text-muted-foreground">
-                  {(competitors ?? []).filter((c) => !tableQuery.trim() || c.domain.includes(tableQuery.trim().toLowerCase())).length} van {competitors.length} domeinen
+                  {(competitors ?? []).filter((c) => !tableQuery.trim() || c.domain.includes(tableQuery.trim().toLowerCase())).length} {AP.ofDomains[lang]} {competitors.length} {AP.domainsWord[lang]}
                 </span>
               </div>
 
@@ -377,11 +443,11 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-xs text-muted-foreground border-b border-border">
-                      <th className="py-2 pr-3">Domein</th>
-                      <th className="py-2 pr-3">Eerst gezien</th>
-                      <th className="py-2 pr-3">Laatst gezien</th>
-                      <th className="py-2 pr-3 text-right">Aanwezig (30d)</th>
-                      <th className="py-2 pr-3">Campagnes</th>
+                      <th className="py-2 pr-3">{AP.colDomain[lang]}</th>
+                      <th className="py-2 pr-3">{AP.colFirstSeen[lang]}</th>
+                      <th className="py-2 pr-3">{AP.colLastSeen[lang]}</th>
+                      <th className="py-2 pr-3 text-right">{AP.colPresent[lang]}</th>
+                      <th className="py-2 pr-3">{AP.colCampaigns[lang]}</th>
                       <th className="py-2">Status</th>
                     </tr>
                   </thead>
@@ -396,9 +462,9 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
                             <button
                               onClick={() => openDrilldown(c.domain)}
                               className="font-medium text-left hover:text-brand underline-offset-2 hover:underline"
-                              title="Toon welke keywords dit domein beconcurreert"
+                              title={AP.drillTitle[lang]}
                             >
-                              {drillLoading === c.domain ? "laden…" : c.domain}
+                              {drillLoading === c.domain ? AP.loading[lang] : c.domain}
                             </button>
                           </td>
                           <td className="py-2 pr-3 text-muted-foreground">{dateShort(c.firstSeen)}</td>
@@ -410,7 +476,7 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
                             </span>
                           </td>
                           <td className="py-2">
-                            <span title={c.statusReason}><Badge className={st.cls}>{st.label}</Badge></span>
+                            <span title={c.statusReason}><Badge className={st.cls}>{st.label[lang]}</Badge></span>
                           </td>
                         </tr>
                       );
@@ -422,16 +488,16 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
               {/* Compact context chart — presence days are NOT impression share */}
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-1">
-                  Top {Math.min(8, chartData.length)} domeinen — aanwezige dagen van de laatste 30 (geen impression share)
+                  Top {Math.min(8, chartData.length)} {AP.topDomains[lang]}
                 </p>
                 <ResponsiveContainer width="100%" height={Math.min(240, Math.max(140, Math.min(8, chartData.length) * 28))}>
                   <BarChart data={chartData.slice(0, 8)} layout="vertical" margin={{ left: 80 }}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                    <XAxis type="number" domain={[0, 30]} tick={{ fontSize: 11 }} className="fill-muted-foreground" label={{ value: "dagen", position: "insideBottomRight", fontSize: 10 }} />
+                    <XAxis type="number" domain={[0, 30]} tick={{ fontSize: 11 }} className="fill-muted-foreground" label={{ value: AP.daysAxis[lang], position: "insideBottomRight", fontSize: 10 }} />
                     <YAxis type="category" dataKey="domain" tick={{ fontSize: 11 }} className="fill-muted-foreground" width={120} />
                     <Tooltip
                       contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
-                      formatter={(value) => [`${Number(value)} van 30 dagen`, "Aanwezig"]}
+                      formatter={(value) => [`${Number(value)} ${AP.ofThirtyDays[lang]}`, AP.presentTip[lang]]}
                     />
                     <Bar dataKey="dagen" radius={[0, 4, 4, 0]}>
                       {chartData.slice(0, 8).map((c) => (
@@ -447,8 +513,8 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
 
               {coverage && (
                 <p className="text-xs text-muted-foreground border-t border-border pt-3">
-                  Dekking vanaf {coverage.coverageFrom ? dateShort(coverage.coverageFrom) : "—"} · {coverage.totalRows.toLocaleString("nl-BE")} waarnemingen
-                  {coverage.lastSyncAt && ` · laatste sync ${new Date(coverage.lastSyncAt).toLocaleString("nl-BE")}`}.
+                  {AP.coverageFrom[lang]} {coverage.coverageFrom ? dateShort(coverage.coverageFrom) : "—"} · {coverage.totalRows.toLocaleString("nl-BE")} {AP.observations[lang]}
+                  {coverage.lastSyncAt && ` · ${AP.lastSync[lang]} ${new Date(coverage.lastSyncAt).toLocaleString(lang === "en" ? "en-GB" : "nl-BE")}`}.
                   {" "}{coverage.note}
                 </p>
               )}
@@ -465,15 +531,14 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
         <CardHeader>
           <button onClick={() => setCsvOpen(!csvOpen)} className="text-left">
             <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <Upload className="h-4 w-4" /> Handmatige CSV-import (fallback) {csvOpen ? "▾" : "▸"}
+              <Upload className="h-4 w-4" /> {AP.csvFallback[lang]} {csvOpen ? "▾" : "▸"}
             </CardTitle>
           </button>
         </CardHeader>
         {csvOpen && (
           <CardContent className="space-y-3">
             <p className="text-xs text-muted-foreground">
-              Alleen nodig voor scopes die de API niet dekt. Google Ads → Campagnes → Statistieken en
-              rapporten → Auction insights → download als CSV → plak hieronder.
+              {AP.csvHelp[lang]}
             </p>
             <textarea
               value={csv}
@@ -483,7 +548,7 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
             />
             <div className="flex items-center gap-3">
               <label className="text-sm text-muted-foreground">
-                Datum van export:{" "}
+                {AP.exportDate[lang]}{" "}
                 <input
                   type="date"
                   value={pulledOn}
@@ -492,7 +557,7 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
                 />
               </label>
               <Button size="sm" onClick={importCsv} disabled={!csv.trim() || importing}>
-                {importing ? "Importeren…" : "Importeer"}
+                {importing ? AP.importing[lang] : AP.import[lang]}
               </Button>
             </div>
           </CardContent>
@@ -517,7 +582,7 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
               <div>
                 <p className="font-semibold">{drilldown.domain}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Beconcurreert {drilldown.keywords.length} keyword{drilldown.keywords.length === 1 ? "" : "s"} ·{" "}
+                  {AP.competesOn[lang]} {drilldown.keywords.length} {drilldown.keywords.length === 1 ? AP.keywordWord[lang] : AP.keywordsWord[lang]} ·{" "}
                   {dateShort(drilldown.windowStart)} → {dateShort(drilldown.windowEnd)}
                 </p>
               </div>
@@ -525,7 +590,7 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
                 <Button size="sm" variant="outline" onClick={exportDrilldownCsv} disabled={!drilldown.keywords.length}>
                   <Download className="h-4 w-4 mr-1" /> CSV ({drilldown.keywords.length})
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => setDrilldown(null)} aria-label="Sluit drilldown">
+                <Button size="sm" variant="ghost" onClick={() => setDrilldown(null)} aria-label={AP.closeDrill[lang]}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -541,7 +606,7 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
                     <input
                       value={drillSearch}
                       onChange={(e) => { setDrillSearch(e.target.value); setDrillShown(25); }}
-                      placeholder="Zoek in keywords, adgroepen, campagnes…"
+                      placeholder={AP.drillSearch[lang]}
                       className="w-full rounded-md border border-border bg-background pl-8 pr-3 py-2 text-sm"
                     />
                   </div>
@@ -554,18 +619,18 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
                     return (
                       <>
                         <p className="text-xs text-muted-foreground">
-                          {visibleRows.length} van {filtered.length} keywords{q ? ` (gefilterd uit ${drilldown.keywords.length})` : ""}
+                          {visibleRows.length} {AP.ofKeywords[lang]} {filtered.length} {AP.keywordsWord[lang]}{q ? ` (${AP.filteredFrom[lang]} ${drilldown.keywords.length})` : ""}
                         </p>
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm">
                             <thead className="sticky top-0 bg-card">
                               <tr className="text-left text-xs text-muted-foreground border-b border-border">
-                                <th className="py-1.5 pr-3">Keyword</th>
-                                <th className="py-1.5 pr-3">Match</th>
-                                <th className="py-1.5 pr-3">Adgroep</th>
-                                <th className="py-1.5 pr-3">Campagne</th>
-                                <th className="py-1.5 pr-3 text-right">Dagen</th>
-                                <th className="py-1.5">Laatst</th>
+                                <th className="py-1.5 pr-3">{AP.colKeyword[lang]}</th>
+                                <th className="py-1.5 pr-3">{AP.colMatch[lang]}</th>
+                                <th className="py-1.5 pr-3">{AP.colAdgroup[lang]}</th>
+                                <th className="py-1.5 pr-3">{AP.colCampaign[lang]}</th>
+                                <th className="py-1.5 pr-3 text-right">{AP.colDays[lang]}</th>
+                                <th className="py-1.5">{AP.colLast[lang]}</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -585,7 +650,7 @@ export function AuctionPresenceSection({ showToast }: { showToast: (m: string) =
                         {filtered.length > drillShown && (
                           <div className="text-center pt-1">
                             <Button size="sm" variant="outline" onClick={() => setDrillShown((n) => n + 50)}>
-                              Toon meer ({visibleRows.length} van {filtered.length})
+                              {AP.showMore[lang]} ({visibleRows.length} {AP.ofKeywords[lang]} {filtered.length})
                             </Button>
                           </div>
                         )}

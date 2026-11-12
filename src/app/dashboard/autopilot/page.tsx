@@ -32,6 +32,93 @@ import { ContextSection, BiddingSection, LocationsSection } from "./context-bidd
 import { AssetsSection } from "./assets-section";
 import { BudgetSection } from "./budget-section";
 import { MiniMarkdown } from "@/components/ui/mini-markdown";
+import { AdsLangProvider, LangToggle, useAdsLang, type L } from "./i18n";
+
+// ─── Translated UI strings (NL default / EN) ───
+const S = {
+  tagline: { nl: "Vind verspilling, audit je account, volg concurrenten — jij beslist, de tool voert uit.", en: "Find waste, audit your account, track competitors — you decide, the tool executes." },
+  accountMeta: { nl: "Account 668-709-2345 · periode:", en: "Account 668-709-2345 · period:" },
+  daysMeta: { nl: "dagen · Google Ads API v23 · tijdzone account (Europe/Brussels)", en: "days · Google Ads API v23 · account timezone (Europe/Brussels)" },
+  last7: { nl: "Laatste 7 dagen", en: "Last 7 days" },
+  last30: { nl: "Laatste 30 dagen", en: "Last 30 days" },
+  last90: { nl: "Laatste 90 dagen", en: "Last 90 days" },
+  refresh: { nl: "Vernieuwen", en: "Refresh" },
+  aiRunning: { nl: "AI analyseert…", en: "AI is analysing…" },
+  aiAnalyse: { nl: "AI-analyse", en: "AI analysis" },
+  failed: { nl: "✗ Mislukt:", en: "✗ Failed:" },
+  tabOptimalisatie: { nl: "Optimalisatie", en: "Optimization" },
+  tabZoektermen: { nl: "Zoektermen", en: "Search terms" },
+  tabKeywords: { nl: "Keywords", en: "Keywords" },
+  tabCampagnes: { nl: "Campagnes", en: "Campaigns" },
+  tabAssets: { nl: "Assets", en: "Assets" },
+  tabBiedingen: { nl: "Biedingen", en: "Bidding" },
+  tabLocaties: { nl: "Locaties", en: "Locations" },
+  tabBudget: { nl: "Budget", en: "Budget" },
+  tabContext: { nl: "Context", en: "Context" },
+  tabNegatieven: { nl: "Negatieven", en: "Negatives" },
+  tabAdvertenties: { nl: "Advertenties", en: "Ads" },
+  tabConversies: { nl: "Conversies", en: "Conversions" },
+  tabAudit: { nl: "Account Audit", en: "Account Audit" },
+  tabConcurrentie: { nl: "Concurrentie", en: "Competition" },
+  kpiWastedSpend: { nl: "Verspilde spend (0 conversies)", en: "Wasted spend (0 conversions)" },
+  kpiWasteTerms: { nl: "Verspillende zoektermen", en: "Wasteful search terms" },
+  kpiWinners: { nl: "Winnende termen (ROAS ≥ 3)", en: "Winning terms (ROAS ≥ 3)" },
+  kpiPause: { nl: "Keywords om te pauzeren", en: "Keywords to pause" },
+  performance: { nl: "Prestaties", en: "Performance" },
+  daysWord: { nl: "dagen", en: "days" },
+  allCampaigns: { nl: "Alle campagnes", en: "All campaigns" },
+  dayG: { nl: "Dag", en: "Day" },
+  weekG: { nl: "Week", en: "Week" },
+  monthG: { nl: "Maand", en: "Month" },
+  stacked: { nl: "Gestapeld per type", en: "Stacked by type" },
+  otherCh: { nl: "Overig", en: "Other" },
+  leftAxis: { nl: "links", en: "left" },
+  wasteRadar: { nl: "Verspillingsradar — zoektermen", en: "Waste radar — search terms" },
+  applying: { nl: "Toepassen…", en: "Applying…" },
+  blockSelected: { nl: "Blokkeer geselecteerde", en: "Block selected" },
+  wasteRules1: { nl: "= ≥ €25 zonder conversie ·", en: "= ≥ €25 with no conversion ·" },
+  wasteRules2: { nl: "= €10–25 zonder conversie (conversies kunnen nog binnenkomen) ·", en: "= €10–25 with no conversion (conversions may still come in) ·" },
+  wasteRules3: { nl: "= CPA > 2× campagne-gemiddelde · window = gekozen periode.", en: "= CPA > 2× campaign average · window = selected period." },
+  rules: { nl: "Regels:", en: "Rules:" },
+  waste: { nl: "Verspilling", en: "Waste" },
+  review: { nl: "Beoordelen", en: "Review" },
+  expensive: { nl: "Duur", en: "Expensive" },
+  noWaste: { nl: "Geen verspilling gevonden in deze periode. 🎉", en: "No waste found in this period. 🎉" },
+  searchTerm: { nl: "Zoekterm", en: "Search term" },
+  verdict: { nl: "Verdict", en: "Verdict" },
+  budgetAdvice: { nl: "Budgetadvies", en: "Budget advice" },
+  noBudgetData: { nl: "Geen actieve campagnes met budgetdata.", en: "No active campaigns with budget data." },
+  apply: { nl: "Pas toe", en: "Apply" },
+  spendLabel: { nl: "Spend:", en: "Spend:" },
+  convLabel: { nl: "Conv:", en: "Conv:" },
+  pauseCandidates: { nl: "Keywords om te pauzeren", en: "Keywords to pause" },
+  noLosingKeywords: { nl: "Geen verlieslatende keywords gevonden.", en: "No loss-making keywords found." },
+  kwReason: { nl: "Reden", en: "Reason" },
+  pause: { nl: "Pauzeer", en: "Pause" },
+  pageOf: { nl: "Pagina", en: "Page" },
+  ofWord: { nl: "van", en: "of" },
+  prev: { nl: "‹ Vorige", en: "‹ Previous" },
+  next: { nl: "Volgende ›", en: "Next ›" },
+  keywordsWord: { nl: "keywords", en: "keywords" },
+  monitorNote1: { nl: "De anomaliemonitor draait dagelijks via cron en stuurt een Telegram-melding bij spend-pieken, spend-dips, weggevallen conversies of CTR-instorting. De autopilot past", en: "The anomaly monitor runs daily via cron and sends a Telegram alert on spend spikes, spend dips, dropped conversions or CTR collapse. The autopilot changes" },
+  monitorNote2: { nl: "nooit zelf", en: "never by itself" },
+  monitorNote3: { nl: " iets aan — elke actie is een bewuste klik en wordt gelogd.", en: " anything — every action is a deliberate click and is logged." },
+  auditDesc: { nl: "Tien automatische checks: conversiemeting, policy, stille groepen, biedstrategie, negatieve lijsten, landingspagina's, geo-lekkage, Quality Score, merktermen in PMax, toestellen.", en: "Ten automatic checks: conversion tracking, policy, silent ad groups, bid strategy, negative lists, landing pages, geo leakage, Quality Score, brand terms in PMax, devices." },
+  aiSummary: { nl: "AI-samenvatting", en: "AI summary" },
+  startAudit: { nl: "Start audit", en: "Start audit" },
+  auditRunning: { nl: "Audit loopt (±30s)…", en: "Audit running (±30s)…" },
+  auditFailed: { nl: "✗ Audit mislukt:", en: "✗ Audit failed:" },
+  criticalFindings: { nl: "Kritieke bevindingen", en: "Critical findings" },
+  warnings: { nl: "Aandachtspunten", en: "Warnings" },
+  allGood: { nl: "In orde", en: "All good" },
+  skipped: { nl: "Overgeslagen (niet meetbaar — telt niet mee als OK)", en: "Skipped (not measurable — does not count as OK)" },
+  auditFound: { nl: "Wat de audit vond", en: "What the audit found" },
+  noAuditYet: { nl: "Nog geen audit gedraaid. Klik op \"Start audit\" — de checks lezen alleen, ze wijzigen niets.", en: "No audit run yet. Click \"Start audit\" — the checks only read data, they change nothing." },
+  sevCritical: { nl: "Kritiek", en: "Critical" },
+  sevWarning: { nl: "Let op", en: "Warning" },
+  sevOk: { nl: "OK", en: "OK" },
+  sevUnavailable: { nl: "Niet meetbaar", en: "Not measurable" },
+} satisfies Record<string, L>;
 
 // ─── Types (mirror of src/lib/ads-autopilot.ts, ads-audit.ts, ads-auction.ts) ───
 
@@ -79,19 +166,20 @@ interface DayPoint {
 }
 
 // Metric definitions for the insights chart (Bavian-style picker).
-const CHART_METRICS: Record<string, { label: string; color: string; fmt: (v: number) => string }> = {
-  spend: { label: "Spend", color: "#f59e0b", fmt: (v) => `€${v.toLocaleString("nl-BE", { maximumFractionDigits: 0 })}` },
-  clicks: { label: "Kliks", color: "#3b82f6", fmt: (v) => v.toLocaleString("nl-BE") },
-  impressions: { label: "Impressies", color: "#8b5cf6", fmt: (v) => v.toLocaleString("nl-BE", { notation: "compact" }) },
-  ctr: { label: "CTR", color: "#06b6d4", fmt: (v) => `${v.toFixed(2)}%` },
-  conversions: { label: "Conversies", color: "#10b981", fmt: (v) => v.toLocaleString("nl-BE", { maximumFractionDigits: 1 }) },
-  convValue: { label: "Conv. waarde", color: "#ec4899", fmt: (v) => `€${v.toLocaleString("nl-BE", { maximumFractionDigits: 0 })}` },
+const CHART_METRICS: Record<string, { label: string; labelEn: string; color: string; fmt: (v: number) => string }> = {
+  spend: { label: "Spend", labelEn: "Spend", color: "#f59e0b", fmt: (v) => `€${v.toLocaleString("nl-BE", { maximumFractionDigits: 0 })}` },
+  clicks: { label: "Kliks", labelEn: "Clicks", color: "#3b82f6", fmt: (v) => v.toLocaleString("nl-BE") },
+  impressions: { label: "Impressies", labelEn: "Impressions", color: "#8b5cf6", fmt: (v) => v.toLocaleString("nl-BE", { notation: "compact" }) },
+  ctr: { label: "CTR", labelEn: "CTR", color: "#06b6d4", fmt: (v) => `${v.toFixed(2)}%` },
+  conversions: { label: "Conversies", labelEn: "Conversions", color: "#10b981", fmt: (v) => v.toLocaleString("nl-BE", { maximumFractionDigits: 1 }) },
+  convValue: { label: "Conv. waarde", labelEn: "Conv. value", color: "#ec4899", fmt: (v) => `€${v.toLocaleString("nl-BE", { maximumFractionDigits: 0 })}` },
 };
 
 type Granularity = "day" | "week" | "month";
 const MONTH_NL = ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
+const MONTH_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-function aggregateDays(days: DayPoint[], gran: Granularity): (DayPoint & { label: string; ctr: number })[] {
+function aggregateDays(days: DayPoint[], gran: Granularity, lang: "nl" | "en" = "nl"): (DayPoint & { label: string; ctr: number })[] {
   const withCtr = (d: DayPoint & { label: string }) => ({
     ...d,
     ctr: d.impressions > 0 ? (d.clicks / d.impressions) * 100 : 0,
@@ -108,7 +196,7 @@ function aggregateDays(days: DayPoint[], gran: Granularity): (DayPoint & { label
       label = `wk ${key.slice(5)}`;
     } else {
       key = d.fullDate.slice(0, 7);
-      label = MONTH_NL[Number(key.slice(5)) - 1];
+      label = (lang === "en" ? MONTH_EN : MONTH_NL)[Number(key.slice(5)) - 1];
     }
     const b = buckets.get(key) ?? { ...d, label, spend: 0, clicks: 0, impressions: 0, conversions: 0, allConversions: 0, convValue: 0, impressionShare: null };
     b.spend += d.spend;
@@ -141,11 +229,18 @@ interface Competitor {
 
 const ACCOUNT_ID = "668-709-2345";
 
-const SEVERITY_STYLE: Record<string, { icon: React.ElementType; cls: string; badgeCls: string; label: string }> = {
-  critical: { icon: XCircle, cls: "border-red-500/30 bg-red-500/5", badgeCls: "border-red-500/40 bg-red-500/10 text-red-600 dark:text-red-400", label: "Kritiek" },
-  warning: { icon: AlertCircle, cls: "border-amber-500/30 bg-amber-500/5", badgeCls: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400", label: "Let op" },
-  ok: { icon: CheckCircle2, cls: "border-emerald-500/30 bg-emerald-500/5", badgeCls: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400", label: "OK" },
-  unavailable: { icon: Info, cls: "border-border bg-muted/20", badgeCls: "border-border bg-muted/40 text-muted-foreground", label: "Niet meetbaar" },
+const SEVERITY_STYLE: Record<string, { icon: React.ElementType; cls: string; badgeCls: string }> = {
+  critical: { icon: XCircle, cls: "border-red-500/30 bg-red-500/5", badgeCls: "border-red-500/40 bg-red-500/10 text-red-600 dark:text-red-400" },
+  warning: { icon: AlertCircle, cls: "border-amber-500/30 bg-amber-500/5", badgeCls: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+  ok: { icon: CheckCircle2, cls: "border-emerald-500/30 bg-emerald-500/5", badgeCls: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+  unavailable: { icon: Info, cls: "border-border bg-muted/20", badgeCls: "border-border bg-muted/40 text-muted-foreground" },
+};
+
+const SEV_LABEL: Record<string, L> = {
+  critical: S.sevCritical,
+  warning: S.sevWarning,
+  ok: S.sevOk,
+  unavailable: S.sevUnavailable,
 };
 
 const COMP_STATUS: Record<string, { label: string; cls: string }> = {
@@ -156,6 +251,15 @@ const COMP_STATUS: Record<string, { label: string; cls: string }> = {
 };
 
 export default function AutopilotPage() {
+  return (
+    <AdsLangProvider>
+      <AutopilotPageInner />
+    </AdsLangProvider>
+  );
+}
+
+function AutopilotPageInner() {
+  const { lang } = useAdsLang();
   const [dateRange, setDateRange] = useState("LAST_30_DAYS");
   const [terms, setTerms] = useState<SearchTermRow[] | null>(null);
   const [budgets, setBudgets] = useState<BudgetAdvice[] | null>(null);
@@ -249,7 +353,7 @@ export default function AutopilotPage() {
       showToast(`✓ ${data.summary}`);
       await load(false);
     } catch (e) {
-      showToast(`✗ Mislukt: ${String(e)}`);
+      showToast(`${S.failed[lang]} ${String(e)}`);
     } finally {
       setBusy(null);
     }
@@ -293,29 +397,30 @@ export default function AutopilotPage() {
               Google Ads <span className="text-google">Autopilot</span>
             </h1>
             <p className="text-sm text-muted-foreground">
-              Vind verspilling, audit je account, volg concurrenten — jij beslist, de tool voert uit.
+              {S.tagline[lang]}
             </p>
             <p className="text-xs text-muted-foreground/70 mt-0.5">
-              Account 668-709-2345 · periode: {dateRange === "LAST_7_DAYS" ? "7" : dateRange === "LAST_90_DAYS" ? "90" : "30"} dagen · Google Ads API v23 · tijdzone account (Europe/Brussels)
+              {S.accountMeta[lang]} {dateRange === "LAST_7_DAYS" ? "7" : dateRange === "LAST_90_DAYS" ? "90" : "30"} {S.daysMeta[lang]}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <LangToggle />
           <select
             value={dateRange}
             onChange={(e) => setDateRange(e.target.value)}
             className="rounded-md border border-border bg-background px-3 py-2 text-sm"
           >
-            <option value="LAST_7_DAYS">Laatste 7 dagen</option>
-            <option value="LAST_30_DAYS">Laatste 30 dagen</option>
-            <option value="LAST_90_DAYS">Laatste 90 dagen</option>
+            <option value="LAST_7_DAYS">{S.last7[lang]}</option>
+            <option value="LAST_30_DAYS">{S.last30[lang]}</option>
+            <option value="LAST_90_DAYS">{S.last90[lang]}</option>
           </select>
           <Button variant="outline" size="sm" onClick={() => load(false)} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`} /> Vernieuwen
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`} /> {S.refresh[lang]}
           </Button>
           <Button size="sm" onClick={() => load(true)} disabled={loading || aiLoading}>
             <Sparkles className={`h-4 w-4 mr-1 ${aiLoading ? "animate-pulse" : ""}`} />
-            {aiLoading ? "AI analyseert…" : "AI-analyse"}
+            {aiLoading ? S.aiRunning[lang] : S.aiAnalyse[lang]}
           </Button>
         </div>
       </div>
@@ -338,46 +443,46 @@ export default function AutopilotPage() {
               <Sparkles className="h-4 w-4" /> Agent
             </TabsTrigger>
             <TabsTrigger value="optimalisatie" className="flex-none gap-2 text-sm">
-              <Radar className="h-4 w-4" /> Optimalisatie
+              <Radar className="h-4 w-4" /> {S.tabOptimalisatie[lang]}
             </TabsTrigger>
             <TabsTrigger value="zoektermen" className="flex-none gap-2 text-sm">
-              <SearchIcon className="h-4 w-4" /> Zoektermen
+              <SearchIcon className="h-4 w-4" /> {S.tabZoektermen[lang]}
             </TabsTrigger>
             <TabsTrigger value="keywords" className="flex-none gap-2 text-sm">
-              <KeyRound className="h-4 w-4" /> Keywords
+              <KeyRound className="h-4 w-4" /> {S.tabKeywords[lang]}
             </TabsTrigger>
             <TabsTrigger value="campagnes" className="flex-none gap-2 text-sm">
-              <Layers className="h-4 w-4" /> Campagnes
+              <Layers className="h-4 w-4" /> {S.tabCampagnes[lang]}
             </TabsTrigger>
             <TabsTrigger value="assets" className="flex-none gap-2 text-sm">
-              <Link2 className="h-4 w-4" /> Assets
+              <Link2 className="h-4 w-4" /> {S.tabAssets[lang]}
             </TabsTrigger>
             <TabsTrigger value="biedingen" className="flex-none gap-2 text-sm">
-              <Crosshair className="h-4 w-4" /> Biedingen
+              <Crosshair className="h-4 w-4" /> {S.tabBiedingen[lang]}
             </TabsTrigger>
             <TabsTrigger value="locaties" className="flex-none gap-2 text-sm">
-              <MapPin className="h-4 w-4" /> Locaties
+              <MapPin className="h-4 w-4" /> {S.tabLocaties[lang]}
             </TabsTrigger>
             <TabsTrigger value="budget" className="flex-none gap-2 text-sm">
-              <Wallet className="h-4 w-4" /> Budget
+              <Wallet className="h-4 w-4" /> {S.tabBudget[lang]}
             </TabsTrigger>
             <TabsTrigger value="context" className="flex-none gap-2 text-sm">
-              <Brain className="h-4 w-4" /> Context
+              <Brain className="h-4 w-4" /> {S.tabContext[lang]}
             </TabsTrigger>
             <TabsTrigger value="negatieven" className="flex-none gap-2 text-sm">
-              <Ban className="h-4 w-4" /> Negatieven
+              <Ban className="h-4 w-4" /> {S.tabNegatieven[lang]}
             </TabsTrigger>
             <TabsTrigger value="advertenties" className="flex-none gap-2 text-sm">
-              <Megaphone className="h-4 w-4" /> Advertenties
+              <Megaphone className="h-4 w-4" /> {S.tabAdvertenties[lang]}
             </TabsTrigger>
             <TabsTrigger value="conversies" className="flex-none gap-2 text-sm">
-              <Target className="h-4 w-4" /> Conversies
+              <Target className="h-4 w-4" /> {S.tabConversies[lang]}
             </TabsTrigger>
             <TabsTrigger value="audit" className="flex-none gap-2 text-sm">
-              <ClipboardCheck className="h-4 w-4" /> Account Audit
+              <ClipboardCheck className="h-4 w-4" /> {S.tabAudit[lang]}
             </TabsTrigger>
             <TabsTrigger value="concurrentie" className="flex-none gap-2 text-sm">
-              <Swords className="h-4 w-4" /> Concurrentie
+              <Swords className="h-4 w-4" /> {S.tabConcurrentie[lang]}
             </TabsTrigger>
             </TabsList>
           </div>
@@ -397,7 +502,7 @@ export default function AutopilotPage() {
                 {loading ? <Skeleton className="h-10 w-24" /> : (
                   <>
                     <p className="text-2xl font-bold text-red-600 dark:text-red-400">{eur(summary?.wasteCostMicros ?? 0)}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Verspilde spend (0 conversies)</p>
+                    <p className="text-xs text-muted-foreground mt-1">{S.kpiWastedSpend[lang]}</p>
                   </>
                 )}
               </CardContent>
@@ -407,7 +512,7 @@ export default function AutopilotPage() {
                 {loading ? <Skeleton className="h-10 w-24" /> : (
                   <>
                     <p className="text-2xl font-bold">{summary?.waste ?? 0}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Verspillende zoektermen</p>
+                    <p className="text-xs text-muted-foreground mt-1">{S.kpiWasteTerms[lang]}</p>
                   </>
                 )}
               </CardContent>
@@ -417,7 +522,7 @@ export default function AutopilotPage() {
                 {loading ? <Skeleton className="h-10 w-24" /> : (
                   <>
                     <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{summary?.winners ?? 0}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Winnende termen (ROAS ≥ 3)</p>
+                    <p className="text-xs text-muted-foreground mt-1">{S.kpiWinners[lang]}</p>
                   </>
                 )}
               </CardContent>
@@ -427,7 +532,7 @@ export default function AutopilotPage() {
                 {loading ? <Skeleton className="h-10 w-24" /> : (
                   <>
                     <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{keywords?.length ?? 0}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Keywords om te pauzeren</p>
+                    <p className="text-xs text-muted-foreground mt-1">{S.kpiPause[lang]}</p>
                   </>
                 )}
               </CardContent>
@@ -438,7 +543,7 @@ export default function AutopilotPage() {
           <Card>
             <CardHeader className="flex flex-wrap flex-row items-center justify-between gap-2">
               <CardTitle className="text-lg">
-                Prestaties — {dateRange === "LAST_7_DAYS" ? "7" : dateRange === "LAST_90_DAYS" ? "90" : "30"} dagen
+                {S.performance[lang]} — {dateRange === "LAST_7_DAYS" ? "7" : dateRange === "LAST_90_DAYS" ? "90" : "30"} {S.daysWord[lang]}
               </CardTitle>
               <div className="flex flex-wrap items-center gap-2">
                 <select
@@ -446,7 +551,7 @@ export default function AutopilotPage() {
                   onChange={(e) => setChartCampaign(e.target.value)}
                   className="max-w-48 truncate rounded-md border border-border bg-background px-2 py-1.5 text-sm"
                 >
-                  <option value="">Alle campagnes</option>
+                  <option value="">{S.allCampaigns[lang]}</option>
                   {campaignOptions.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
@@ -457,7 +562,7 @@ export default function AutopilotPage() {
                   className="rounded-md border border-border bg-background px-2 py-1.5 text-sm"
                 >
                   {Object.entries(CHART_METRICS).map(([k, m]) => (
-                    <option key={k} value={k}>{m.label}</option>
+                    <option key={k} value={k}>{lang === "en" ? m.labelEn : m.label}</option>
                   ))}
                 </select>
                 <div className="flex rounded-md border border-border overflow-hidden text-sm">
@@ -467,7 +572,7 @@ export default function AutopilotPage() {
                       onClick={() => setGranularity(g)}
                       className={`px-2.5 py-1.5 ${granularity === g ? "bg-google text-google-foreground" : "bg-background text-muted-foreground hover:text-foreground"}`}
                     >
-                      {g === "day" ? "Dag" : g === "week" ? "Week" : "Maand"}
+                      {g === "day" ? S.dayG[lang] : g === "week" ? S.weekG[lang] : S.monthG[lang]}
                     </button>
                   ))}
                 </div>
@@ -476,7 +581,7 @@ export default function AutopilotPage() {
                     onClick={() => setChartStacked(!chartStacked)}
                     className={`px-2.5 py-1.5 text-xs rounded-md border transition-colors ${chartStacked ? "border-google/40 bg-google/10 text-google font-medium" : "border-border text-muted-foreground hover:text-foreground"}`}
                   >
-                    Gestapeld per type
+                    {S.stacked[lang]}
                   </button>
                 )}
               </div>
@@ -491,7 +596,7 @@ export default function AutopilotPage() {
                     search: { label: "Search", color: "#3b82f6" },
                     pmax: { label: "PMax", color: "#8b5cf6" },
                     demandGen: { label: "Demand Gen", color: "#f59e0b" },
-                    other: { label: "Overig", color: "#6b7280" },
+                    other: { label: S.otherCh[lang], color: "#6b7280" },
                   };
                   // Aggregate channel days by granularity
                   const buckets = new Map<string, { search: number; pmax: number; demandGen: number; other: number }>();
@@ -509,7 +614,7 @@ export default function AutopilotPage() {
                   }
                   const stackData = [...buckets.entries()].map(([key, v]) => ({
                     label: granularity === "month"
-                      ? MONTH_NL[Number(key.slice(5)) - 1]
+                      ? (lang === "en" ? MONTH_EN : MONTH_NL)[Number(key.slice(5)) - 1]
                       : granularity === "week" ? `wk ${key.slice(5)}` : key.slice(5),
                     ...v,
                   }));
@@ -543,7 +648,8 @@ export default function AutopilotPage() {
               ) : (
                 (() => {
                   const m = CHART_METRICS[chartMetric];
-                  const data = aggregateDays(days, granularity).map((d) => ({
+                  const mLabel = lang === "en" ? m.labelEn : m.label;
+                  const data = aggregateDays(days, granularity, lang).map((d) => ({
                     ...d,
                     metric: chartMetric === "ctr" ? d.ctr : d[chartMetric as keyof DayPoint],
                   }));
@@ -551,7 +657,7 @@ export default function AutopilotPage() {
                     <>
                       <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2">
                         <span className="flex items-center gap-1.5">
-                          <span className="inline-block h-2 w-4 rounded" style={{ background: m.color }} /> {m.label} (links)
+                          <span className="inline-block h-2 w-4 rounded" style={{ background: m.color }} /> {mLabel} ({S.leftAxis[lang]})
                         </span>
                       </div>
                       <ResponsiveContainer width="100%" height={220}>
@@ -561,9 +667,9 @@ export default function AutopilotPage() {
                           <YAxis yAxisId="left" tick={{ fontSize: 11 }} className="fill-muted-foreground" tickFormatter={(v) => m.fmt(Number(v))} />
                           <Tooltip
                             contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
-                            formatter={(value) => [m.fmt(Number(value)), m.label]}
+                            formatter={(value) => [m.fmt(Number(value)), mLabel]}
                           />
-                          <Area yAxisId="left" type="monotone" dataKey="metric" stroke={m.color} fill={m.color} fillOpacity={0.15} name={m.label} />
+                          <Area yAxisId="left" type="monotone" dataKey="metric" stroke={m.color} fill={m.color} fillOpacity={0.15} name={mLabel} />
                         </ComposedChart>
                       </ResponsiveContainer>
                     </>
@@ -577,7 +683,7 @@ export default function AutopilotPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Trash2 className="h-5 w-5 text-red-600 dark:text-red-400" /> Verspillingsradar — zoektermen
+                <Trash2 className="h-5 w-5 text-red-600 dark:text-red-400" /> {S.wasteRadar[lang]}
               </CardTitle>
               <Button
                 size="sm"
@@ -585,20 +691,18 @@ export default function AutopilotPage() {
                 disabled={!selected.size || busy !== null}
                 onClick={applyNegatives}
               >
-                {busy?.startsWith("neg:") ? "Toepassen…" : `Blokkeer geselecteerde (${selected.size})`}
+                {busy?.startsWith("neg:") ? S.applying[lang] : `${S.blockSelected[lang]} (${selected.size})`}
               </Button>
             </CardHeader>
             <CardContent>
               <p className="text-xs text-muted-foreground mb-3">
-                Regels: <strong>Verspilling</strong> = ≥ €25 zonder conversie · <strong>Beoordelen</strong> = €10–25 zonder conversie
-                (conversies kunnen nog binnenkomen) · <strong>Duur</strong> = CPA &gt; 2× campagne-gemiddelde ·
-                window = gekozen periode.
+                {S.rules[lang]} <strong>{S.waste[lang]}</strong> {S.wasteRules1[lang]} <strong>{S.review[lang]}</strong> {S.wasteRules2[lang]} <strong>{S.expensive[lang]}</strong> {S.wasteRules3[lang]}
               </p>
               {loading ? (
                 <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
               ) : !wasteTerms.length ? (
                 <p className="text-sm text-muted-foreground py-6 text-center">
-                  Geen verspilling gevonden in deze periode. 🎉
+                  {S.noWaste[lang]}
                 </p>
               ) : (
                 <div className="overflow-x-auto">
@@ -606,12 +710,12 @@ export default function AutopilotPage() {
                     <thead>
                       <tr className="text-left text-xs text-muted-foreground border-b border-border">
                         <th className="py-2 pr-2"></th>
-                        <th className="py-2 pr-3">Zoekterm</th>
-                        <th className="py-2 pr-3">Campagne</th>
-                        <th className="py-2 pr-3 text-right">Kosten</th>
-                        <th className="py-2 pr-3 text-right">Kliks</th>
+                        <th className="py-2 pr-3">{S.searchTerm[lang]}</th>
+                        <th className="py-2 pr-3">{S.tabCampagnes[lang] === "Campaigns" ? "Campaign" : "Campagne"}</th>
+                        <th className="py-2 pr-3 text-right">{lang === "en" ? "Cost" : "Kosten"}</th>
+                        <th className="py-2 pr-3 text-right">{lang === "en" ? "Clicks" : "Kliks"}</th>
                         <th className="py-2 pr-3 text-right">Conv.</th>
-                        <th className="py-2 pr-3">Verdict</th>
+                        <th className="py-2 pr-3">{S.verdict[lang]}</th>
                         <th className="py-2">AI</th>
                       </tr>
                     </thead>
@@ -638,11 +742,11 @@ export default function AutopilotPage() {
                             <td className="py-2 pr-3 text-right font-medium">{eur(t.costMicros)}</td>
                             <td className="py-2 pr-3 text-right">{t.clicks}</td>
                             <td className="py-2 pr-3 text-right">{t.conversions}</td>
-                            <td className="py-2 pr-3"><Badge className={v.cls}>{v.label}</Badge></td>
+                            <td className="py-2 pr-3"><Badge className={v.cls}>{v.label[lang]}</Badge></td>
                             <td className="py-2">
                               {ai ? (
                                 <span title={t.aiReason ?? ""}>
-                                  <Badge className={ai.cls}>{ai.label}</Badge>
+                                  <Badge className={ai.cls}>{ai.label[lang]}</Badge>
                                 </span>
                               ) : (
                                 <span className="text-xs text-muted-foreground">—</span>
@@ -662,7 +766,7 @@ export default function AutopilotPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Wallet className="h-5 w-5 text-brand" /> Budgetadvies
+                <Wallet className="h-5 w-5 text-brand" /> {S.budgetAdvice[lang]}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -671,7 +775,7 @@ export default function AutopilotPage() {
                   {Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}
                 </div>
               ) : !budgets?.length ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">Geen actieve campagnes met budgetdata.</p>
+                <p className="text-sm text-muted-foreground py-4 text-center">{S.noBudgetData[lang]}</p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {budgets.map((b) => (
@@ -698,9 +802,9 @@ export default function AutopilotPage() {
                       <p className="text-xs text-muted-foreground mt-1">{b.reason}</p>
                       <div className="mt-2 flex items-center justify-between text-sm">
                         <span>
-                          {eur(b.dailyBudgetMicros)}/dag
+                          {eur(b.dailyBudgetMicros)}{lang === "en" ? "/day" : "/dag"}
                           {b.action !== "hold" && (
-                            <span className="text-muted-foreground"> → {eur(b.suggestedDailyBudgetMicros)}/dag</span>
+                            <span className="text-muted-foreground"> → {eur(b.suggestedDailyBudgetMicros)}{lang === "en" ? "/day" : "/dag"}</span>
                           )}
                         </span>
                         {b.action !== "hold" && b.budgetResourceName && (
@@ -721,13 +825,13 @@ export default function AutopilotPage() {
                               )
                             }
                           >
-                            {busy === `budget:${b.campaignId}` ? "…" : "Pas toe"}
+                            {busy === `budget:${b.campaignId}` ? "…" : S.apply[lang]}
                           </Button>
                         )}
                       </div>
                       <div className="mt-2 flex gap-3 text-xs text-muted-foreground">
-                        <span>Spend: {eur(b.costMicros)}</span>
-                        <span>Conv: {b.conversions}</span>
+                        <span>{S.spendLabel[lang]} {eur(b.costMicros)}</span>
+                        <span>{S.convLabel[lang]} {b.conversions}</span>
                         <span>CPA: {b.cpa !== null ? eur(b.cpa) : "—"}</span>
                         <span>ROAS: {b.roas !== null ? b.roas.toFixed(1) : "—"}</span>
                       </div>
@@ -742,7 +846,7 @@ export default function AutopilotPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <PauseCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" /> Keywords om te pauzeren
+                <PauseCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" /> {S.pauseCandidates[lang]}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -751,7 +855,7 @@ export default function AutopilotPage() {
               ) : !keywords?.length ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">
                   <CheckCircle2 className="inline h-4 w-4 text-emerald-600 dark:text-emerald-400 mr-1" />
-                  Geen verlieslatende keywords gevonden.
+                  {S.noLosingKeywords[lang]}
                 </p>
               ) : (
                 <div className="overflow-x-auto">
@@ -759,10 +863,10 @@ export default function AutopilotPage() {
                     <thead>
                       <tr className="text-left text-xs text-muted-foreground border-b border-border">
                         <th className="py-2 pr-3">Keyword</th>
-                        <th className="py-2 pr-3">Campagne / Adgroep</th>
-                        <th className="py-2 pr-3 text-right">Kosten</th>
+                        <th className="py-2 pr-3">{lang === "en" ? "Campaign / Ad group" : "Campagne / Adgroep"}</th>
+                        <th className="py-2 pr-3 text-right">{lang === "en" ? "Cost" : "Kosten"}</th>
                         <th className="py-2 pr-3 text-right">Conv.</th>
-                        <th className="py-2 pr-3">Reden</th>
+                        <th className="py-2 pr-3">{S.kwReason[lang]}</th>
                         <th className="py-2"></th>
                       </tr>
                     </thead>
@@ -800,7 +904,7 @@ export default function AutopilotPage() {
                                 )
                               }
                             >
-                              {busy === `kw:${k.resourceName}` ? "…" : "Pauzeer"}
+                              {busy === `kw:${k.resourceName}` ? "…" : S.pause[lang]}
                             </Button>
                           </td>
                         </tr>
@@ -815,9 +919,9 @@ export default function AutopilotPage() {
                     const pg = Math.min(kwPausePage, total - 1);
                     return (
                       <div className="flex items-center justify-center gap-2 pt-3">
-                        <Button size="sm" variant="outline" disabled={pg === 0} onClick={() => setKwPausePage(pg - 1)}>‹ Vorige</Button>
-                        <span className="px-2 text-xs text-muted-foreground">Pagina {pg + 1} van {total} · {keywords?.length} keywords</span>
-                        <Button size="sm" variant="outline" disabled={pg >= total - 1} onClick={() => setKwPausePage(pg + 1)}>Volgende ›</Button>
+                        <Button size="sm" variant="outline" disabled={pg === 0} onClick={() => setKwPausePage(pg - 1)}>{S.prev[lang]}</Button>
+                        <span className="px-2 text-xs text-muted-foreground">{S.pageOf[lang]} {pg + 1} {S.ofWord[lang]} {total} · {keywords?.length} {S.keywordsWord[lang]}</span>
+                        <Button size="sm" variant="outline" disabled={pg >= total - 1} onClick={() => setKwPausePage(pg + 1)}>{S.next[lang]}</Button>
                       </div>
                     );
                   })()}
@@ -930,9 +1034,9 @@ export default function AutopilotPage() {
       <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
         <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
         <p>
-          De anomaliemonitor draait dagelijks via cron en stuurt een Telegram-melding bij
-          spend-pieken, spend-dips, weggevallen conversies of CTR-instorting. De autopilot past
-          <strong> nooit zelf</strong> iets aan — elke actie is een bewuste klik en wordt gelogd.
+          {S.monitorNote1[lang]}
+          <strong> {S.monitorNote2[lang]}</strong>
+          {S.monitorNote3[lang]}
         </p>
       </div>
     </div>
@@ -942,6 +1046,7 @@ export default function AutopilotPage() {
 // ─── Audit tab ───
 
 function AuditSection({ showToast }: { showToast: (m: string) => void }) {
+  const { lang } = useAdsLang();
   const [findings, setFindings] = useState<Finding[] | null>(null);
   const [narrative, setNarrative] = useState<string | null>(null);
   const [summary, setSummary] = useState<{ critical: number; warning: number; ok: number; unavailable?: number } | null>(null);
@@ -958,7 +1063,7 @@ function AuditSection({ showToast }: { showToast: (m: string) => void }) {
       setNarrative(data.narrative ?? null);
       setSummary(data.summary ?? null);
     } catch (e) {
-      showToast(`✗ Audit mislukt: ${String(e)}`);
+      showToast(`${S.auditFailed[lang]} ${String(e)}`);
     } finally {
       setRunning(false);
     }
@@ -971,8 +1076,7 @@ function AuditSection({ showToast }: { showToast: (m: string) => void }) {
           <div>
             <p className="font-medium">Account Audit</p>
             <p className="text-sm text-muted-foreground">
-              Tien automatische checks: conversiemeting, policy, stille groepen, biedstrategie,
-              negatieve lijsten, landingspagina&apos;s, geo-lekkage, Quality Score, merktermen in PMax, toestellen.
+              {S.auditDesc[lang]}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -983,13 +1087,13 @@ function AuditSection({ showToast }: { showToast: (m: string) => void }) {
                 onChange={(e) => setWithNarrative(e.target.checked)}
                 className="accent-brand"
               />
-              AI-samenvatting
+              {S.aiSummary[lang]}
             </label>
             <Button onClick={runAudit} disabled={running}>
               {running ? (
-                <><RefreshCw className="h-4 w-4 mr-1 animate-spin" /> Audit loopt (±30s)…</>
+                <><RefreshCw className="h-4 w-4 mr-1 animate-spin" /> {S.auditRunning[lang]}</>
               ) : (
-                <><ClipboardCheck className="h-4 w-4 mr-1" /> Start audit</>
+                <><ClipboardCheck className="h-4 w-4 mr-1" /> {S.startAudit[lang]}</>
               )}
             </Button>
           </div>
@@ -1000,19 +1104,19 @@ function AuditSection({ showToast }: { showToast: (m: string) => void }) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card><CardContent className="pt-5">
             <p className="text-2xl font-bold text-red-600 dark:text-red-400">{summary.critical}</p>
-            <p className="text-xs text-muted-foreground mt-1">Kritieke bevindingen</p>
+            <p className="text-xs text-muted-foreground mt-1">{S.criticalFindings[lang]}</p>
           </CardContent></Card>
           <Card><CardContent className="pt-5">
             <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{summary.warning}</p>
-            <p className="text-xs text-muted-foreground mt-1">Aandachtspunten</p>
+            <p className="text-xs text-muted-foreground mt-1">{S.warnings[lang]}</p>
           </CardContent></Card>
           <Card><CardContent className="pt-5">
             <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{summary.ok}</p>
-            <p className="text-xs text-muted-foreground mt-1">In orde</p>
+            <p className="text-xs text-muted-foreground mt-1">{S.allGood[lang]}</p>
           </CardContent></Card>
           <Card><CardContent className="pt-5">
             <p className="text-2xl font-bold text-muted-foreground">{summary.unavailable ?? 0}</p>
-            <p className="text-xs text-muted-foreground mt-1">Overgeslagen (niet meetbaar — telt niet mee als OK)</p>
+            <p className="text-xs text-muted-foreground mt-1">{S.skipped[lang]}</p>
           </CardContent></Card>
         </div>
       )}
@@ -1021,7 +1125,7 @@ function AuditSection({ showToast }: { showToast: (m: string) => void }) {
         <Card className="border-brand/30 bg-brand/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Sparkles className="h-5 w-5 text-brand" /> Wat de audit vond
+              <Sparkles className="h-5 w-5 text-brand" /> {S.auditFound[lang]}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -1036,6 +1140,7 @@ function AuditSection({ showToast }: { showToast: (m: string) => void }) {
 
       {findings?.map((f) => {
         const s = SEVERITY_STYLE[f.severity];
+        const sLabel = SEV_LABEL[f.severity]?.[lang] ?? f.severity;
         return (
           <Card key={f.id} className={s.cls}>
             <CardContent className="pt-5">
@@ -1044,7 +1149,7 @@ function AuditSection({ showToast }: { showToast: (m: string) => void }) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-medium">{f.title}</p>
-                    <Badge className={s.badgeCls}>{s.label}</Badge>
+                    <Badge className={s.badgeCls}>{sLabel}</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">{f.detail}</p>
                   {f.stats && (
@@ -1066,7 +1171,7 @@ function AuditSection({ showToast }: { showToast: (m: string) => void }) {
 
       {!findings && !running && (
         <p className="text-sm text-muted-foreground text-center py-8">
-          Nog geen audit gedraaid. Klik op &quot;Start audit&quot; — de checks lezen alleen, ze wijzigen niets.
+          {S.noAuditYet[lang]}
         </p>
       )}
     </div>

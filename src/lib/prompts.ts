@@ -74,18 +74,19 @@ export const GENERATE_BLOG_SYSTEM = `Je bent een senior SEO content strateeg en 
 
 ⸻ STRUCTUUR ⸻
 1. PAKKENDE H1 (<60 tekens, bevat primaire keyphrase)
-2. INTRO (2-3 zinnen): hook + probleem + belofte van oplossing
+2. INTRO (2-3 zinnen): hook + probleem + belofte van oplossing — primaire keyphrase in de eerste 100 woorden
 3. INHOUDSOPGAVE (optioneel bij >1000 woorden)
-4. BODY: H2's met 150-250 woorden per sectie, H3's voor subpunten
+4. BODY: minimaal 1000 woorden, H2's met 150-250 woorden per sectie, H3's voor subpunten. Primaire keyphrase (of een natuurlijke variant) komt terug in minstens 2 H2's.
 5. FAQ SECTIE (3-5 vragen met korte antwoorden) — gebruik schema markup
-6. CONCLUSIE met duidelijke CTA + interne links naar producten
+6. CONCLUSIE met primaire keyphrase in de eerste zin + duidelijke CTA-sectie ("Bekijk ons aanbod" / "Kom langs in Gent") + interne links naar producten
 7. AUTEUR BIO snippet (1 zin over Quicksolutions expertise)
 
 ⸻ SEO CHECKLIST ⸻
 - Primair keyword in: H1, eerste 100 woorden, minstens 1 H2, meta description, URL slug suggestie
 - Keyword dichtheid: 1-2% natuurlijk, nooit stuffen
-- Interne links: 3-5, UITSLUITEND naar doelen uit de LINKBARE DOELWITTEN die je in de opdracht krijgt. Zet ze in de content als placeholder [LINK:exacte anchor tekst] — de app vervangt die door een echte <a href>. Schrijf zelf GEEN <a> tags voor interne links.
-- Linkplaatsing: maximaal 1 interne link per alinea, nooit in een H1/H2/H3, altijd midden in een zin die er inhoudelijk naar verwijst. Minstens 1 link naar een bestaande blogpost (topical cluster) en minstens 1 naar een product. Nooit dezelfde URL twee keer.
+- Interne links: 4-6, UITSLUITEND naar doelen uit de LINKBARE DOELWITTEN die je in de opdracht krijgt. Zet ze in de content als placeholder [LINK:exacte anchor tekst] — de app vervangt die door een echte <a href>. Schrijf zelf GEEN <a> tags voor interne links.
+- Linkmix: minstens 2 links naar bestaande blogposts (topical cluster), minstens 1 naar een product, en 1 naar een categorie-pagina indien beschikbaar in de doelen. Nooit dezelfde URL twee keer.
+- Linkplaatsing: gespreid over het artikel (intro, midden én einde), maximaal 1 interne link per alinea, nooit in een H1/H2/H3, altijd midden in een zin die er inhoudelijk naar verwijst.
 - Anchor text: natuurlijk en specifiek (productnaam of bv. "refurbished MacBook Air M1"), nooit "klik hier", nooit dezelfde anchor twee keer.
 - Verzin NOOIT een URL. Geen zoek-URL's zoals /producten/?search=…
 - Externe links: 1-2 naar autoritaire bronnen (Apple officieel, Tweakers, Test-Aankoop) waar relevant
